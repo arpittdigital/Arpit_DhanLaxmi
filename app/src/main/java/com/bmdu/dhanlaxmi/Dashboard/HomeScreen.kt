@@ -60,7 +60,7 @@ val drawerMenuItems = listOf(
     DrawerMenuItem(Icons.Filled.StarRate,        "Game Rate","game_rate"),
     DrawerMenuItem(Icons.Filled.ContactPage,    "Contact Us",      "contact_us"),
     DrawerMenuItem(Icons.Filled.PlayCircle, "How to Play",     "how_to_play"),
-    DrawerMenuItem(Icons.Filled.Share,          "Share",           "share"),
+//    DrawerMenuItem(Icons.Filled.Share,          "Share",           "share"),
     DrawerMenuItem(Icons.Filled.Lock, "Privacy Policy", "privacy_policy"),
     DrawerMenuItem(Icons.Filled.Logout,         "Logout",          "logout"),
 )
