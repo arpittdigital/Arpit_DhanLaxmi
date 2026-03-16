@@ -31,8 +31,10 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import androidx.navigation.compose.currentBackStackEntryAsState
 import com.bmdu.dhanlaxmi.Model.GameData
+import com.bmdu.dhanlaxmi.Model.TokenManager
 import com.bmdu.dhanlaxmi.R
 import com.bmdu.dhanlaxmi.components.LogoutConfirmDialog
+import com.bmdu.dhanlaxmi.ui.theme.GoldTheme
 import com.bmdu.dhanlaxmi.viewModel.GameViewModel
 import com.bmdu.dhanlaxmi.viewModel.ProfileViewModel
 import kotlinx.coroutines.launch
@@ -130,7 +132,12 @@ fun HomeScreen(navController: NavController) {
                 onItemClick   = { route ->
                     scope.launch { drawerState.close() }
                     when (route) {
-                        "logout" -> showLogoutDialog = true
+                        "logout" -> {
+                            TokenManager.clearToken(context)
+                            navController.navigate("login") {
+                                popUpTo(0) { inclusive = true }
+                            }
+                        }
                         "home"   -> selectedRoute = "home"
 
 
@@ -207,9 +214,15 @@ fun HomeScreenContent(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(horizontal = 16.dp, vertical = 4.dp)
-                    .height(50.dp),
-                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFF3EE06)),
-                shape  = RoundedCornerShape(8.dp)
+                    .height(50.dp)
+                    .background(
+                        brush = GoldTheme.metallicBrush,  // 👈 your file
+                        shape = RoundedCornerShape(8.dp)
+                    ),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = Color.Transparent
+                ),
+                shape = RoundedCornerShape(8.dp)
             ) {
                 Icon(Icons.Default.PlayCircle, contentDescription = null, tint = Color.Black, modifier = Modifier.size(24.dp))
                 Spacer(Modifier.width(8.dp))
@@ -222,10 +235,20 @@ fun HomeScreenContent(
             when (val s = gameState) {
                 is GameViewModel.GameState.Loading -> {
                     Box(
-                        modifier         = Modifier.fillMaxWidth().weight(1f),
-                        contentAlignment = Alignment.Center
+                        contentAlignment = Alignment.Center,
+                        modifier = Modifier
+                            .size(52.dp)
+                            .background(
+                                brush = GoldTheme.metallicBrush,
+                                shape = CircleShape
+                            )
                     ) {
-                        CircularProgressIndicator(color = Color(0xFFF3EE06))
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(40.dp),  // slightly smaller than Box
+                            color = Color(0xFF4A3000),        // dark brown so visible on gold bg
+                            trackColor = Color(0x448B6914),   // semi-transparent dark gold
+                            strokeWidth = 4.dp
+                        )
                     }
                 }
 
@@ -304,7 +327,7 @@ fun ApiGameCard(
             .height(110.dp)
             .clickable { onCardClick() },
         shape = RoundedCornerShape(12.dp),
-        colors = CardDefaults.cardColors(containerColor = Color(0xFF005503)),
+        colors = CardDefaults.cardColors(containerColor = Color(0xFF059409)),
         elevation = CardDefaults.cardElevation(2.dp)
     ) {
         Row(
@@ -320,7 +343,7 @@ fun ApiGameCard(
                 modifier = Modifier
                     .size(60.dp)
                     .clip(CircleShape)
-                    .background(Color(0xFF00A904)),
+                    .background(Color(0xFF088C0C)),
                 contentAlignment = Alignment.Center
             ) {
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
@@ -420,7 +443,10 @@ fun TopBar(
         modifier = Modifier
             .fillMaxWidth()
             .height(60.dp)
-            .background(Color(0xFFD8C715))
+            .background(
+                brush = GoldTheme.metallicBrush,
+                shape = RoundedCornerShape(3.dp)
+            )
             .padding(horizontal = 16.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.SpaceBetween
@@ -444,11 +470,11 @@ fun TopBar(
                 painter = painterResource(id = R.drawable.logo),
                 contentDescription = "Logo",
                 modifier = Modifier
-                    .size(36.dp)
+                    .size(45.dp)
                     .clip(CircleShape)
             )
 
-            Spacer(modifier = Modifier.width(5.dp))
+            Spacer(modifier = Modifier.width(3.dp))
 
                 Text(
                     text = "₹ $amount",
@@ -654,9 +680,10 @@ fun BottomNavigationBar(
     navController: NavController
 ) {
     NavigationBar(
-        containerColor = Color(0xFFF3EE06),
+        containerColor = Color.Transparent,
         contentColor   = Color.Black,
         modifier       = Modifier.height(70.dp)
+            .background(brush = GoldTheme.metallicBrush)
     ) {
         bottomNavItems.forEach { (route, icon, label) ->
             val isSelected = currentRoute == route
