@@ -175,12 +175,12 @@ fun ProfileScreen(navController: NavController) {
                     Spacer(Modifier.height(16.dp))
 
                     // ── Password (masked) ─────────────────
-                    ProfileFieldYellow(
-                        label = "Password",
-                        value = profile?.password ?: "••••••••"
-                    )
-
-                    Spacer(Modifier.height(16.dp))
+//                    ProfileFieldYellow(
+//                        label = "Password",
+//                        value = profile?.password ?: "••••••••"
+//                    )
+//
+//                    Spacer(Modifier.height(16.dp))
 
                     // ── Customer ID ───────────────────────
                     ProfileFieldYellow(

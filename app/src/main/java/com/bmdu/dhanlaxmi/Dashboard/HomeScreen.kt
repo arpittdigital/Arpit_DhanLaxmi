@@ -1,8 +1,8 @@
 package com.bmdu.dhanlaxmi.Dashboard
 
-import android.util.Log
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -18,6 +18,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -40,6 +41,19 @@ import com.bmdu.dhanlaxmi.viewModel.ProfileViewModel
 import kotlinx.coroutines.launch
 
 // ══════════════════════════════════════════════════════════
+//  COLOR PALETTE
+// ══════════════════════════════════════════════════════════
+
+private val DarkGreen     = Color(0xFF002601)
+private val MidGreen      = Color(0xFF004D02)
+private val BrightGreen   = Color(0xFF00A904)
+private val CardGreen     = Color(0xFF005C02)
+private val CardGreenDark = Color(0xFF003D01)
+private val GoldText      = Color(0xFFE7D156)   // bright gold — visible on dark green
+private val GoldMid       = Color(0xFFDBB74C)
+private val BlackText     = Color(0xFF1A1100)   // near-black — visible on bright gold bg
+
+// ══════════════════════════════════════════════════════════
 //  DATA MODELS
 // ══════════════════════════════════════════════════════════
 
@@ -49,25 +63,19 @@ data class DrawerMenuItem(
     val route: String
 )
 
-// ══════════════════════════════════════════════════════════
-//  DRAWER ITEMS
-// ══════════════════════════════════════════════════════════
-
 val drawerMenuItems = listOf(
     DrawerMenuItem(Icons.Filled.Home,           "Home",            "home"),
     DrawerMenuItem(Icons.Filled.Person,         "User Profile",    "profile_screen"),
     DrawerMenuItem(Icons.Filled.Star,           "Winning History", "winning_history"),
     DrawerMenuItem(Icons.Filled.List,           "Bid History",     "history"),
     DrawerMenuItem(Icons.Filled.AccountBalance, "Banking Details", "bank_details"),
-    DrawerMenuItem(Icons.Filled.StarRate,        "Game Rate","game_rate"),
+    DrawerMenuItem(Icons.Filled.StarRate,       "Game Rate",       "game_rate"),
     DrawerMenuItem(Icons.Filled.ContactPage,    "Contact Us",      "contact_us"),
-    DrawerMenuItem(Icons.Filled.PlayCircle, "How to Play",     "how_to_play"),
-//    DrawerMenuItem(Icons.Filled.Share,          "Share",           "share"),
-    DrawerMenuItem(Icons.Filled.Lock, "Privacy Policy", "privacy_policy"),
+    DrawerMenuItem(Icons.Filled.PlayCircle,     "How to Play",     "how_to_play"),
+    DrawerMenuItem(Icons.Filled.Lock,           "Privacy Policy",  "privacy_policy"),
     DrawerMenuItem(Icons.Filled.Logout,         "Logout",          "logout"),
 )
 
-// Bottom nav items
 val bottomNavItems = listOf(
     Triple("home",    Icons.Default.Home,      "Home"),
     Triple("history", Icons.Default.Replay,    "History"),
@@ -76,44 +84,50 @@ val bottomNavItems = listOf(
     Triple("share",   Icons.Default.Share,     "Share"),
 )
 
+// ══════════════════════════════════════════════════════════
+//  ROOT
+// ══════════════════════════════════════════════════════════
+
 @Composable
 fun HomeScreen(navController: NavController) {
-
     val drawerState      = rememberDrawerState(initialValue = DrawerValue.Closed)
     val scope            = rememberCoroutineScope()
     var selectedRoute    by remember { mutableStateOf("home") }
     var showLogoutDialog by remember { mutableStateOf(false) }
 
-
-    val viewModel: ProfileViewModel = androidx.lifecycle.viewmodel.compose.viewModel()
+    val viewModel: ProfileViewModel = viewModel()
     val state by viewModel.profileState.collectAsState()
 
     val context = LocalContext.current
     val prefs   = context.getSharedPreferences("auth_prefs", android.content.Context.MODE_PRIVATE)
     val token   = prefs.getString("auth_token", null)
 
+    // ✅ Read signup data as fallback when no token yet
+    val signupName  = prefs.getString("signup_name", null)
+    val signupPhone = prefs.getString("signup_phone", null)
+
     val userName = when (val s = state) {
         is ProfileViewModel.ProfileState.Success -> s.data.data?.name ?: "User"
         else -> "User"
     }
-
-    // ── Fetch profile on first load ──────────────────────
-    LaunchedEffect(Unit) {
-        if (!token.isNullOrBlank()) {
-
-            viewModel.fetchProfile(token)
-        } else {
-        }
+    val userPhone = when (val s = state) {
+        is ProfileViewModel.ProfileState.Success -> s.data.data?.phone ?: ""  // ✅ dynamic phone
+        else -> ""
+    }
+    val userPoints = when (val s = state) {
+        is ProfileViewModel.ProfileState.Success -> s.data.data?.wallet_amount?.toInt() ?: 0
+        else -> 0
     }
 
+    LaunchedEffect(Unit) {
+        if (!token.isNullOrBlank()) viewModel.fetchProfile(token)
+    }
 
     if (showLogoutDialog) {
         LogoutConfirmDialog(
             onConfirm = {
                 showLogoutDialog = false
-                navController.navigate("login") {
-                    popUpTo("home") { inclusive = true }
-                }
+                navController.navigate("login") { popUpTo("home") { inclusive = true } }
             },
             onCancel = { showLogoutDialog = false }
         )
@@ -121,12 +135,12 @@ fun HomeScreen(navController: NavController) {
 
     ModalNavigationDrawer(
         drawerState   = drawerState,
-        scrimColor    = Color.Black.copy(alpha = 0.5f),
+        scrimColor    = Color.Black.copy(alpha = 0.6f),
         drawerContent = {
             DrawerContent(
-                userName      = userName ,
-                userPhone     = "9674332246",
-                userPoints    = 0,
+                userName      = userName,
+                userPhone     = userPhone,
+                userPoints    = userPoints,
                 menuItems     = drawerMenuItems,
                 selectedRoute = selectedRoute,
                 onItemClick   = { route ->
@@ -134,143 +148,157 @@ fun HomeScreen(navController: NavController) {
                     when (route) {
                         "logout" -> {
                             TokenManager.clearToken(context)
-                            navController.navigate("login") {
-                                popUpTo(0) { inclusive = true }
-                            }
+                            navController.navigate("login") { popUpTo(0) { inclusive = true } }
                         }
-                        "home"   -> selectedRoute = "home"
-
-
-                        else     -> {
-                            selectedRoute = route
-                            navController.navigate(route)
-                        }
+                        "home" -> selectedRoute = "home"
+                        else   -> { selectedRoute = route; navController.navigate(route) }
                     }
                 }
             )
         }
     ) {
-        HomeScreenContent(
-            navController = navController,
-            onMenuClick   = { scope.launch { drawerState.open() } }
-        )
+        HomeScreenContent(navController = navController, onMenuClick = { scope.launch { drawerState.open() } })
+    }
+    // ✅ Re-fetch profile every time token changes
+    LaunchedEffect(token) {
+        if (!token.isNullOrBlank()) viewModel.fetchProfile(token)
     }
 }
 
+// ══════════════════════════════════════════════════════════
+//  MAIN CONTENT
+// ══════════════════════════════════════════════════════════
+
 @Composable
-fun HomeScreenContent(
-    navController: NavController,
-    onMenuClick  : () -> Unit
-) {
-    val context   = LocalContext.current
-    val prefs     = context.getSharedPreferences("auth_prefs", android.content.Context.MODE_PRIVATE)
+fun HomeScreenContent(navController: NavController, onMenuClick: () -> Unit) {
+    val context  = LocalContext.current
+    val prefs    = context.getSharedPreferences("auth_prefs", android.content.Context.MODE_PRIVATE)
     val rawToken = prefs.getString("auth_token", null) ?: ""
-    val token = "Bearer $rawToken"
-    val viewModel: GameViewModel = androidx.lifecycle.viewmodel.compose.viewModel()
+    val token    = "Bearer $rawToken"
+
+    val viewModel: GameViewModel = viewModel()
     val gameState by viewModel.gamestate.collectAsState()
 
-    LaunchedEffect(Unit) {
-        viewModel.fetchGames(token)
-    }
+    LaunchedEffect(Unit) { viewModel.fetchGames(token) }
 
     val navBackStack by navController.currentBackStackEntryAsState()
     val currentRoute  = navBackStack?.destination?.route ?: "home"
 
     Scaffold(
-        topBar        = { TopBar(onMenuClick = onMenuClick,navController) },
-        bottomBar     = {
-            BottomNavigationBar(
-                currentRoute  = currentRoute,
-                navController = navController
-            )
-        },
-        containerColor = Color(0xFF004D02)
+        topBar        = { TopBar(onMenuClick = onMenuClick, navController = navController) },
+        bottomBar     = { BottomNavigationBar(currentRoute = currentRoute, navController = navController) },
+        containerColor = DarkGreen
     ) { padding ->
         Column(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding)
         ) {
-            // Gradient header box
+            // Slim hero strip — only 70dp, card will overlap it
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(140.dp)
-                    .background(
-                        Brush.verticalGradient(
-                            colors = listOf(Color(0xFF00A904), Color(0xFF004D02))
-                        )
-                    )
+                    .height(70.dp)
+                    .background(Brush.verticalGradient(listOf(MidGreen, DarkGreen)))
             )
 
-            // Quick Action Buttons
+            // Quick action card overlaps the hero
             QuickActionButtons(navController = navController)
 
-            // Game Result Button
-            Button(
-                onClick  = {
-                    navController.navigate("game_result")
-                },
+            // Tighten the gap left by the negative offset
+            Spacer(Modifier.height((-24).dp))
+
+            // Game Result button — no extra top gap
+            Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 16.dp, vertical = 4.dp)
-                    .height(50.dp)
-                    .background(
-                        brush = GoldTheme.metallicBrush,  // 👈 your file
-                        shape = RoundedCornerShape(8.dp)
-                    ),
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = Color.Transparent
-                ),
-                shape = RoundedCornerShape(8.dp)
+                    .padding(horizontal = 16.dp)
+                    .height(52.dp)
+                    .shadow(6.dp, RoundedCornerShape(12.dp))
+                    .background(brush = GoldTheme.metallicBrush, shape = RoundedCornerShape(12.dp))
+                    .clickable { navController.navigate("game_result") },
+                contentAlignment = Alignment.Center
             ) {
-                Icon(Icons.Default.PlayCircle, contentDescription = null, tint = Color.Black, modifier = Modifier.size(24.dp))
-                Spacer(Modifier.width(8.dp))
-                Text("Game Result", color = Color.Black, fontSize = 16.sp, fontWeight = FontWeight.W600)
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(
+                        Icons.Default.PlayCircle,
+                        contentDescription = null,
+                        tint     = BlackText,
+                        modifier = Modifier.size(22.dp)
+                    )
+                    Spacer(Modifier.width(10.dp))
+                    Text(
+                        "Game Result",
+                        color         = BlackText,      // ✅ BLACK on gold — fully visible
+                        fontSize      = 16.sp,
+                        fontWeight    = FontWeight.Bold,
+                        letterSpacing = 0.4.sp
+                    )
+                }
             }
 
-            Spacer(Modifier.height(8.dp))
+            Spacer(Modifier.height(14.dp))
 
-            // ── Games List — API se ───────────────────────────
+            // Live Games label
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Box(
+                    modifier = Modifier
+                        .width(4.dp).height(20.dp)
+                        .clip(RoundedCornerShape(2.dp))
+                        .background(brush = GoldTheme.metallicBrush)
+                )
+                Spacer(Modifier.width(10.dp))
+                Text(
+                    "Live Games",
+                    color         = GoldText,           // ✅ bright gold on dark green — visible
+                    fontSize      = 15.sp,
+                    fontWeight    = FontWeight.Bold,
+                    letterSpacing = 0.8.sp
+                )
+            }
+
+            Spacer(Modifier.height(10.dp))
+
+            // Games list
             when (val s = gameState) {
                 is GameViewModel.GameState.Loading -> {
-                    Box(
-                        contentAlignment = Alignment.Center,
-                        modifier = Modifier
-                            .size(52.dp)
-                            .background(
-                                brush = GoldTheme.metallicBrush,
-                                shape = CircleShape
+                    Box(Modifier.fillMaxWidth().weight(1f), Alignment.Center) {
+                        Box(
+                            modifier = Modifier
+                                .size(64.dp)
+                                .background(brush = GoldTheme.metallicBrush, shape = CircleShape),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            CircularProgressIndicator(
+                                modifier    = Modifier.size(44.dp),
+                                color       = BlackText,
+                                trackColor  = Color(0x30000000),
+                                strokeWidth = 4.dp
                             )
-                    ) {
-                        CircularProgressIndicator(
-                            modifier = Modifier.size(40.dp),  // slightly smaller than Box
-                            color = Color(0xFF4A3000),        // dark brown so visible on gold bg
-                            trackColor = Color(0x448B6914),   // semi-transparent dark gold
-                            strokeWidth = 4.dp
-                        )
+                        }
                     }
                 }
 
                 is GameViewModel.GameState.Error -> {
-                    Box(
-                        modifier         = Modifier.fillMaxWidth().weight(1f),
-                        contentAlignment = Alignment.Center
-                    ) {
+                    Box(Modifier.fillMaxWidth().weight(1f), Alignment.Center) {
                         Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                            Text(
-                                text      = s.message,
-                                color     = Color.White,
-                                fontSize  = 14.sp,
-                                textAlign = TextAlign.Center,
-                                modifier  = Modifier.padding(horizontal = 24.dp)
-                            )
+                            Icon(Icons.Default.ErrorOutline, null, tint = GoldText.copy(alpha = 0.7f), modifier = Modifier.size(48.dp))
                             Spacer(Modifier.height(12.dp))
-                            Button(
-                                onClick = { viewModel.fetchGames(token) },
-                                colors  = ButtonDefaults.buttonColors(containerColor = Color(0xFFF3EE06))
+                            Text(s.message, color = Color.White.copy(alpha = 0.8f), fontSize = 14.sp, textAlign = TextAlign.Center, modifier = Modifier.padding(horizontal = 32.dp))
+                            Spacer(Modifier.height(16.dp))
+                            Box(
+                                modifier = Modifier
+                                    .background(brush = GoldTheme.metallicBrush, shape = RoundedCornerShape(8.dp))
+                                    .clickable { viewModel.fetchGames(token) }
+                                    .padding(horizontal = 24.dp, vertical = 10.dp),
+                                contentAlignment = Alignment.Center
                             ) {
-                                Text("Retry", color = Color.Black, fontWeight = FontWeight.Bold)
+                                Text("Retry", color = BlackText, fontWeight = FontWeight.Bold)
                             }
                         }
                     }
@@ -279,18 +307,14 @@ fun HomeScreenContent(
                 is GameViewModel.GameState.Success -> {
                     LazyColumn(
                         modifier            = Modifier.fillMaxWidth().weight(1f),
-                        contentPadding      = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
-                        verticalArrangement = Arrangement.spacedBy(12.dp)
+                        contentPadding      = PaddingValues(horizontal = 16.dp, vertical = 4.dp),
+                        verticalArrangement = Arrangement.spacedBy(10.dp)
                     ) {
                         items(s.games) { game ->
                             ApiGameCard(
-                                game = game,
-                                onCardClick = {
-                                    navController.navigate("delhi_bazar/${game.id}/${game.game_name}")
-                                },
-                                onPlayClick = {
-                                    navController.navigate("delhi_bazar/${game.id}/${game.game_name}")
-                                }
+                                game        = game,
+                                onCardClick = { navController.navigate("delhi_bazar/${game.id}/${game.game_name}") },
+                                onPlayClick = { navController.navigate("delhi_bazar/${game.id}/${game.game_name}") }
                             )
                         }
                     }
@@ -300,120 +324,118 @@ fun HomeScreenContent(
     }
 }
 
+// ══════════════════════════════════════════════════════════
+//  GAME CARD
+// ══════════════════════════════════════════════════════════
 
 @Composable
-fun ApiGameCard(
-    game: GameData,
-    onCardClick: () -> Unit = {},
-    onPlayClick: () -> Unit = {}
-) {
-
+fun ApiGameCard(game: GameData, onCardClick: () -> Unit = {}, onPlayClick: () -> Unit = {}) {
     val gameName   = game.game_name ?: "Game"
-    val resultTime = if (game.result_time.isNullOrBlank()) {
-        "Not Declared"
-    } else {
-        game.result_time
-    }
-
-    val closeTime  = game.close_time ?: ""
+    val resultTime = if (game.result_time.isNullOrBlank()) "Pending" else game.result_time
+    val closeTime  = game.close_time ?: "--"
     val status     = game.status ?: ""
-    val playDays   = game.play_days?.joinToString(", ") ?: ""
-
+    val playDays   = game.play_days?.joinToString(" · ") ?: ""
     val isPlayable = status.equals("play", ignoreCase = true)
 
     Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .height(110.dp)
-            .clickable { onCardClick() },
-        shape = RoundedCornerShape(12.dp),
-        colors = CardDefaults.cardColors(containerColor = Color(0xFF059409)),
-        elevation = CardDefaults.cardElevation(2.dp)
+        modifier  = Modifier.fillMaxWidth().clickable { onCardClick() },
+        shape     = RoundedCornerShape(14.dp),
+        colors    = CardDefaults.cardColors(containerColor = CardGreen),
+        elevation = CardDefaults.cardElevation(4.dp)
     ) {
+        // Gold top accent line
+        Box(Modifier.fillMaxWidth().height(2.dp).background(brush = GoldTheme.metallicBrushHorizontal))
+
         Row(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(12.dp),
-            verticalAlignment = Alignment.CenterVertically,
+            modifier              = Modifier.fillMaxWidth().padding(horizontal = 14.dp, vertical = 14.dp),
+            verticalAlignment     = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
-
-            // Result Time Circle
+            // Result circle — gold ring border
             Box(
                 modifier = Modifier
-                    .size(60.dp)
-                    .clip(CircleShape)
-                    .background(Color(0xFF088C0C)),
+                    .size(66.dp)
+                    .border(2.dp, brush = GoldTheme.metallicBrush, shape = CircleShape)
+                    .padding(3.dp),
                 contentAlignment = Alignment.Center
             ) {
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Text(
-                        text = resultTime ?: "",
-                        color = Color.White,
-                        fontSize = 10.sp,
-                        fontWeight = FontWeight.Bold
-                    )
-                    Text("Result", color = Color.White, fontSize = 8.sp)
+                Box(
+                    modifier         = Modifier.fillMaxSize().clip(CircleShape).background(CardGreenDark),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        Text(
+                            text       = resultTime,
+                            color      = GoldText,       // ✅ bright gold on dark — visible
+                            fontSize   = 10.sp,
+                            fontWeight = FontWeight.Bold,
+                            textAlign  = TextAlign.Center
+                        )
+                        Text("Result", color = Color.White.copy(alpha = 0.6f), fontSize = 8.sp)
+                    }
                 }
             }
 
-            Column(
-                modifier = Modifier
-                    .weight(1f)
-                    .padding(horizontal = 10.dp)
-            ) {
+            // Info
+            Column(modifier = Modifier.weight(1f).padding(horizontal = 12.dp)) {
                 Text(
-                    text = gameName,
-                    color = Color.White,
-                    fontSize = 15.sp,
+                    text       = gameName,
+                    color      = Color.White,            // ✅ white on green — visible
+                    fontSize   = 15.sp,
                     fontWeight = FontWeight.Bold
                 )
-
                 Spacer(Modifier.height(4.dp))
-
-                Text(
-                    text = "Close: $closeTime",
-                    color = Color.White.copy(alpha = 0.8f),
-                    fontSize = 11.sp
-                )
-
-                if (playDays.isNotBlank()) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(Icons.Default.Schedule, null, tint = GoldText.copy(alpha = 0.85f), modifier = Modifier.size(12.dp))
+                    Spacer(Modifier.width(4.dp))
                     Text(
-                        text = "Days: $playDays",
-                        color = Color.White.copy(alpha = 0.7f),
+                        "Close: $closeTime",
+                        color    = Color.White.copy(alpha = 0.80f),  // ✅ white — readable
+                        fontSize = 12.sp
+                    )
+                }
+                if (playDays.isNotBlank()) {
+                    Spacer(Modifier.height(3.dp))
+                    Text(
+                        playDays,
+                        color    = GoldText.copy(alpha = 0.80f),     // ✅ gold — readable
                         fontSize = 10.sp
                     )
                 }
             }
 
+            // Play / Closed
             if (isPlayable) {
-                Button(
-                    onClick = { onPlayClick() },
-                    modifier = Modifier.height(36.dp),
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = Color(0xFFF3EE06)
-                    ),
-                    shape = RoundedCornerShape(8.dp)
+                Box(
+                    modifier = Modifier
+                        .height(38.dp)
+                        .shadow(3.dp, RoundedCornerShape(10.dp))
+                        .background(brush = GoldTheme.metallicBrush, shape = RoundedCornerShape(10.dp))
+                        .clickable { onPlayClick() }
+                        .padding(horizontal = 20.dp),
+                    contentAlignment = Alignment.Center
                 ) {
                     Text(
                         "Play",
-                        color = Color.Black,
+                        color      = BlackText,          // ✅ dark on gold — clearly visible
                         fontWeight = FontWeight.Bold,
-                        fontSize = 12.sp
+                        fontSize   = 13.sp
                     )
                 }
             } else {
                 Box(
                     modifier = Modifier
-                        .clip(RoundedCornerShape(8.dp))
-                        .background(Color.Gray)
-                        .padding(horizontal = 12.dp, vertical = 6.dp)
+                        .clip(RoundedCornerShape(10.dp))
+                        .background(Color(0x33FFFFFF))
+                        .border(1.dp, Color.White.copy(alpha = 0.15f), RoundedCornerShape(10.dp))
+                        .padding(horizontal = 12.dp, vertical = 9.dp)
                 ) {
                     Text(
-                        text = status.uppercase(),
-                        color = Color.White,
-                        fontSize = 10.sp,
-                        fontWeight = FontWeight.Bold
+                        status.uppercase(),
+                        color         = Color.White.copy(alpha = 0.65f),
+                        fontSize      = 10.sp,
+                        fontWeight    = FontWeight.SemiBold,
+                        letterSpacing = 0.8.sp
                     )
                 }
             }
@@ -426,10 +448,7 @@ fun ApiGameCard(
 // ══════════════════════════════════════════════════════════
 
 @Composable
-fun TopBar(
-    onMenuClick: () -> Unit,
-    navController: NavController
-) {
+fun TopBar(onMenuClick: () -> Unit, navController: NavController) {
     val viewModel: ProfileViewModel = viewModel()
     val state by viewModel.profileState.collectAsState()
 
@@ -442,164 +461,50 @@ fun TopBar(
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .height(60.dp)
-            .background(
-                brush = GoldTheme.metallicBrush,
-                shape = RoundedCornerShape(3.dp)
-            )
-            .padding(horizontal = 16.dp),
-        verticalAlignment = Alignment.CenterVertically,
+            .height(64.dp)
+            .background(brush = GoldTheme.metallicBrush)
+            .padding(horizontal = 12.dp),
+        verticalAlignment     = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.SpaceBetween
     ) {
-
-        Icon(
-            imageVector = Icons.Default.Menu,
-            contentDescription = "Menu",
-            tint = Color.Black,
-            modifier = Modifier
-                .size(28.dp)
-                .clickable { onMenuClick() }
-        )
-
-        // 🔥 Center Section (Logo + App Name + Amount)
-        Row(
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-
-            Image(
-                painter = painterResource(id = R.drawable.logo),
-                contentDescription = "Logo",
-                modifier = Modifier
-                    .size(45.dp)
-                    .clip(CircleShape)
-            )
-
-            Spacer(modifier = Modifier.width(3.dp))
-
-                Text(
-                    text = "₹ $amount",
-                    color = Color.Black,
-                    fontSize = 14.sp,
-                    fontWeight = FontWeight.Medium
-                )
-
+        IconButton(onClick = onMenuClick) {
+            Icon(Icons.Default.Menu, "Menu", tint = BlackText, modifier = Modifier.size(26.dp))
         }
 
-        Icon(
-            imageVector = Icons.Default.Notifications,
-            contentDescription = "Notifications",
-            tint = Color.Black,
-            modifier = Modifier
-                .size(28.dp)
-                .clickable {
-                    navController.navigate("notification")
-                }
-        )
-    }
-}
-
-@Composable
-fun DrawerContent(
-    userName     : String,
-    userPhone    : String,
-    userPoints   : Int,
-    menuItems    : List<DrawerMenuItem>,
-    selectedRoute: String,
-    onItemClick  : (String) -> Unit
-) {
-    ModalDrawerSheet(
-        modifier             = Modifier.width(280.dp),
-        drawerShape          = RoundedCornerShape(topEnd = 16.dp, bottomEnd = 16.dp),
-        drawerContainerColor = Color.White
-    ) {
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .background(
-                    Brush.verticalGradient(
-                        listOf(Color(0xFF00A904), Color(0xFF004D02))
-                    )
-                )
-                .padding(vertical = 24.dp, horizontal = 20.dp)
-        ) {
-            Column {
-                Box(
-                    modifier         = Modifier.size(64.dp).clip(CircleShape).background(Color.White),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Icon(Icons.Default.Person, contentDescription = null, tint = Color(0xFF00A904), modifier = Modifier.size(40.dp))
-                }
-                Spacer(Modifier.height(10.dp))
-                Text(userName,  color = Color.White, fontWeight = FontWeight.Bold, fontSize = 16.sp)
-                Text(userPhone, color = Color.White.copy(alpha = 0.8f), fontSize = 13.sp)
-                Spacer(Modifier.height(6.dp))
-                Text("Points: $userPoints", color = Color(0xFFF3EE06), fontWeight = FontWeight.Bold, fontSize = 14.sp)
-            }
-        }
-
-        Column(
-            modifier = Modifier
-                .fillMaxHeight()
-                .verticalScroll(rememberScrollState())
-                .padding(vertical = 8.dp)
-        ) {
-            menuItems.forEach { item ->
-                DrawerMenuItemRow(
-                    item       = item,
-                    isSelected = selectedRoute == item.route,
-                    onClick    = { onItemClick(item.route) }
-                )
-            }
-            Spacer(Modifier.height(24.dp))
-        }
-    }
-}
-
-// ══════════════════════════════════════════════════════════
-//  DRAWER ROW
-// ══════════════════════════════════════════════════════════
-
-@Composable
-fun DrawerMenuItemRow(item: DrawerMenuItem, isSelected: Boolean, onClick: () -> Unit) {
-    val bgColor   = if (isSelected) Color(0xFFE8F5E9) else Color.Transparent
-    val textColor = if (isSelected) Color(0xFF00A904) else Color(0xFF333333)
-    val iconColor = if (isSelected) Color(0xFF00A904) else Color(0xFF666666)
-
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .background(bgColor)
-            .clickable { onClick() }
-            .padding(
-                start  = if (isSelected) 16.dp else 20.dp,
-                end    = 20.dp,
-                top    = 14.dp,
-                bottom = 14.dp
-            ),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        if (isSelected) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            // Logo with subtle border ring
             Box(
                 modifier = Modifier
-                    .width(4.dp).height(24.dp)
-                    .clip(RoundedCornerShape(2.dp))
-                    .background(Color(0xFF00A904))
-            )
-            Spacer(Modifier.width(12.dp))
+                    .size(46.dp)
+                    .border(2.dp, BlackText.copy(alpha = 0.20f), CircleShape),
+                contentAlignment = Alignment.Center
+            ) {
+                Image(
+                    painter            = painterResource(id = R.drawable.logo),
+                    contentDescription = "Logo",
+                    modifier           = Modifier.size(42.dp).clip(CircleShape)
+                )
+            }
+            Spacer(Modifier.width(10.dp))
+            Column {
+                Text(
+                    "Wallet",
+                    color      = BlackText.copy(alpha = 0.60f),  // ✅ dark muted on gold
+                    fontSize   = 11.sp,
+                    fontWeight = FontWeight.Medium
+                )
+                Text(
+                    "₹ $amount",
+                    color      = BlackText,                       // ✅ solid dark on gold
+                    fontSize   = 16.sp,
+                    fontWeight = FontWeight.Bold
+                )
+            }
         }
-        Icon(
-            imageVector        = item.icon,
-            contentDescription = item.label,
-            tint               = iconColor,
-            modifier           = Modifier.size(22.dp)
-        )
-        Spacer(Modifier.width(14.dp))
-        Text(
-            text       = item.label,
-            color      = textColor,
-            fontSize   = 14.sp,
-            fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium
-        )
+
+        IconButton(onClick = { navController.navigate("notification") }) {
+            Icon(Icons.Default.Notifications, "Notifications", tint = BlackText, modifier = Modifier.size(26.dp))
+        }
     }
 }
 
@@ -613,114 +518,191 @@ fun QuickActionButtons(navController: NavController) {
         modifier  = Modifier
             .fillMaxWidth()
             .padding(horizontal = 16.dp)
-            .offset(y = (-70).dp),
-        shape     = RoundedCornerShape(12.dp),
-        colors    = CardDefaults.cardColors(containerColor = Color.White),
-        elevation = CardDefaults.cardElevation(4.dp)
+            .offset(y = (-38).dp),   // overlap hero — reduced gap
+        shape     = RoundedCornerShape(16.dp),
+        colors    = CardDefaults.cardColors(containerColor = CardGreen),
+        elevation = CardDefaults.cardElevation(8.dp)
     ) {
+        Box(Modifier.fillMaxWidth().height(2.dp).background(brush = GoldTheme.metallicBrushHorizontal))
         Row(
-            modifier              = Modifier.fillMaxWidth().padding(vertical = 16.dp),
-            horizontalArrangement = Arrangement.SpaceEvenly
+            modifier              = Modifier.fillMaxWidth().padding(vertical = 16.dp, horizontal = 4.dp),
+            horizontalArrangement = Arrangement.SpaceEvenly,
+            verticalAlignment     = Alignment.CenterVertically
         ) {
             QuickActionButton(
-                icon    = painterResource(id = R.drawable.telegramimg),
-                label   = "Telegram",
-                color   = Color(0xFF0088CC),
-                onClick = { }
+                icon     = painterResource(id = R.drawable.telegramimg),
+                label    = "Telegram",
+                bgColor  = Color(0xFF0D4F73),
+                iconTint = Color.Unspecified,
+                onClick  = {}
             )
+            VDivider()
             QuickActionButton(
-                icon    = painterResource(id = R.drawable.whatsapplogo),
-                label   = "Whatsapp",
-                color   = Color(0xFF25D366),
-                onClick = { }
+                icon     = painterResource(id = R.drawable.whatsapplogo),
+                label    = "WhatsApp",
+                bgColor  = Color(0xFF0E5C2A),
+                iconTint = Color.Unspecified,
+                onClick  = {}
             )
+            VDivider()
             QuickActionButton(
-                icon    = Icons.Default.Add,
-                label   = "Add Funds",
-                color   = Color(0xFF00A904),
-                onClick = { navController.navigate("add_money") }
+                icon     = Icons.Default.Add,
+                label    = "Add Funds",
+                bgColor  = Color(0xFF1A5C1A),
+                iconTint = Color(0xFF6EE98A),
+                onClick  = { navController.navigate("add_money") }
             )
+            VDivider()
             QuickActionButton(
-                icon    = Icons.Default.Remove,
-                label   = "Withdraw",
-                color   = Color.Red,
-                onClick = { navController.navigate("withdrawal") }
+                icon     = Icons.Default.Remove,
+                label    = "Withdraw",
+                bgColor  = Color(0xFF5C1A1A),
+                iconTint = Color(0xFFFC8181),
+                onClick  = { navController.navigate("withdrawal") }
             )
         }
     }
 }
 
 @Composable
-fun QuickActionButton(icon: Any, label: String, color: Color, onClick: () -> Unit = {}) {
+private fun VDivider() {
+    Box(Modifier.width(1.dp).height(44.dp).background(Color.White.copy(alpha = 0.12f)))
+}
+
+@Composable
+fun QuickActionButton(icon: Any, label: String, bgColor: Color, iconTint: Color, onClick: () -> Unit = {}) {
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
-        modifier            = Modifier.clickable { onClick() }
+        modifier            = Modifier.clickable { onClick() }.padding(horizontal = 4.dp)
     ) {
         Box(
-            modifier         = Modifier.size(50.dp).clip(CircleShape).background(color),
+            modifier         = Modifier.size(50.dp).clip(CircleShape).background(bgColor),
             contentAlignment = Alignment.Center
         ) {
             when (icon) {
-                is ImageVector -> Icon(imageVector = icon, contentDescription = label, tint = Color.White, modifier = Modifier.size(28.dp))
-                else           -> Icon(painter = icon as androidx.compose.ui.graphics.painter.Painter, contentDescription = label, tint = Color.White, modifier = Modifier.size(28.dp))
+                is ImageVector -> Icon(icon, label, tint = iconTint, modifier = Modifier.size(26.dp))
+                else           -> Icon(icon as androidx.compose.ui.graphics.painter.Painter, label, tint = iconTint, modifier = Modifier.size(26.dp))
             }
         }
-        Spacer(Modifier.height(4.dp))
-        Text(label, fontSize = 10.sp, color = Color.Black, fontWeight = FontWeight.W500)
+        Spacer(Modifier.height(6.dp))
+        Text(
+            label,
+            fontSize   = 10.sp,
+            color      = Color.White.copy(alpha = 0.90f),  // ✅ white on dark green — readable
+            fontWeight = FontWeight.Medium,
+            textAlign  = TextAlign.Center
+        )
     }
 }
 
 // ══════════════════════════════════════════════════════════
-//  BOTTOM NAVIGATION BAR
+//  BOTTOM NAV
 // ══════════════════════════════════════════════════════════
 
 @Composable
-fun BottomNavigationBar(
-    currentRoute : String,
-    navController: NavController
-) {
+fun BottomNavigationBar(currentRoute: String, navController: NavController) {
     NavigationBar(
         containerColor = Color.Transparent,
-        contentColor   = Color.Black,
-        modifier       = Modifier.height(70.dp)
-            .background(brush = GoldTheme.metallicBrush)
+        modifier       = Modifier.height(68.dp).background(brush = GoldTheme.metallicBrushHorizontal)
     ) {
         bottomNavItems.forEach { (route, icon, label) ->
             val isSelected = currentRoute == route
-
             NavigationBarItem(
-                icon     = {
-                    Icon(
-                        imageVector        = icon,
-                        contentDescription = label,
-                        modifier           = Modifier.size(24.dp)
-                    )
-                },
-                label    = {
-                    Text(label, fontSize = 11.sp, fontWeight = FontWeight.W500)
-                },
+                icon     = { Icon(icon, label, modifier = Modifier.size(22.dp)) },
+                label    = { Text(label, fontSize = 10.sp, fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium) },
                 selected = isSelected,
                 onClick  = {
-                    if (!isSelected) {
-                        when (route) {
-                            "home"    -> navController.navigate("home") {
-                                popUpTo("home") { inclusive = true }
-                            }
-                            "history" -> navController.navigate("history")
-                            "chart"   -> navController.navigate("chart")
-                            "result"  -> { }
-                            "share"   -> { }
-                        }
+                    if (!isSelected) when (route) {
+                        "home"    -> navController.navigate("home") { popUpTo("home") { inclusive = true } }
+                        "history" -> navController.navigate("history")
+                        "chart"   -> navController.navigate("chart")
+                        else      -> {}
                     }
                 },
                 colors = NavigationBarItemDefaults.colors(
-                    selectedIconColor   = Color.Black,
-                    selectedTextColor   = Color.Black,
-                    unselectedIconColor = Color.Black.copy(alpha = 0.6f),
-                    unselectedTextColor = Color.Black.copy(alpha = 0.6f),
-                    indicatorColor      = Color.Transparent
+                    selectedIconColor   = BlackText,               // ✅ dark on gold
+                    selectedTextColor   = BlackText,
+                    unselectedIconColor = BlackText.copy(alpha = 0.45f),
+                    unselectedTextColor = BlackText.copy(alpha = 0.45f),
+                    indicatorColor      = Color(0x33000000)
                 )
             )
         }
+    }
+}
+
+// ══════════════════════════════════════════════════════════
+//  DRAWER
+// ══════════════════════════════════════════════════════════
+
+@Composable
+fun DrawerContent(
+    userName: String, userPhone: String, userPoints: Int,
+    menuItems: List<DrawerMenuItem>, selectedRoute: String,
+    onItemClick: (String) -> Unit
+) {
+    ModalDrawerSheet(
+        modifier             = Modifier.width(280.dp),
+        drawerShape          = RoundedCornerShape(topEnd = 20.dp, bottomEnd = 20.dp),
+        drawerContainerColor = Color(0xFF111111)
+    ) {
+        Box(modifier = Modifier.fillMaxWidth().background(Brush.verticalGradient(listOf(MidGreen, DarkGreen)))) {
+            Box(Modifier.fillMaxWidth().height(3.dp).background(brush = GoldTheme.metallicBrushHorizontal))
+            Column(modifier = Modifier.padding(start = 20.dp, end = 20.dp, top = 32.dp, bottom = 24.dp)) {
+                Box(
+                    modifier = Modifier.size(68.dp).border(2.dp, brush = GoldTheme.metallicBrush, shape = CircleShape),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Box(
+                        modifier         = Modifier.size(63.dp).clip(CircleShape).background(DarkGreen),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(Icons.Default.Person, null, tint = GoldText, modifier = Modifier.size(40.dp))
+                    }
+                }
+                Spacer(Modifier.height(12.dp))
+                Text(userName,  color = Color.White,                     fontWeight = FontWeight.Bold, fontSize = 16.sp)
+                Text(userPhone, color = Color.White.copy(alpha = 0.65f), fontSize = 12.sp)
+                Spacer(Modifier.height(10.dp))
+                Box(
+                    modifier = Modifier
+                        .background(brush = GoldTheme.metallicBrush, shape = RoundedCornerShape(20.dp))
+                        .padding(horizontal = 14.dp, vertical = 5.dp)
+                ) {
+                    Text("⭐  Points: $userPoints", color = BlackText, fontWeight = FontWeight.Bold, fontSize = 12.sp)
+                }
+            }
+        }
+
+        Column(modifier = Modifier.fillMaxHeight().verticalScroll(rememberScrollState()).padding(vertical = 8.dp)) {
+            menuItems.forEach { item ->
+                DrawerMenuItemRow(item = item, isSelected = selectedRoute == item.route, onClick = { onItemClick(item.route) })
+            }
+            Spacer(Modifier.height(24.dp))
+        }
+    }
+}
+
+@Composable
+fun DrawerMenuItemRow(item: DrawerMenuItem, isSelected: Boolean, onClick: () -> Unit) {
+    val bgColor   = if (isSelected) Color(0x22E7D156) else Color.Transparent
+    val textColor = if (isSelected) GoldText else Color.White.copy(alpha = 0.85f)
+    val iconColor = if (isSelected) GoldText else Color.White.copy(alpha = 0.50f)
+
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(bgColor)
+            .clickable { onClick() }
+            .padding(start = if (isSelected) 14.dp else 20.dp, end = 20.dp, top = 14.dp, bottom = 14.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        if (isSelected) {
+            Box(Modifier.width(3.dp).height(22.dp).clip(RoundedCornerShape(2.dp)).background(brush = GoldTheme.metallicBrush))
+            Spacer(Modifier.width(13.dp))
+        }
+        Icon(item.icon, item.label, tint = iconColor, modifier = Modifier.size(20.dp))
+        Spacer(Modifier.width(14.dp))
+        Text(item.label, color = textColor, fontSize = 14.sp, fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal)
     }
 }

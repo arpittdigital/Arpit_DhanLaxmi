@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Scaffold
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
@@ -15,8 +16,10 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.bmdu.dhanlaxmi.Dashboard.*
+import com.bmdu.dhanlaxmi.Model.TokenManager
 import com.bmdu.dhanlaxmi.auth.*
 import com.bmdu.dhanlaxmi.presentation.DelhiBazarScreen
+import com.bmdu.dhanlaxmi.screens.SignupScreen
 import com.bmdu.dhanlaxmi.ui.theme.DhanLaxmiTheme
 import com.bmdu.dhanlaxmi.viewModel.AuthViewModel
 import com.d_shield_parent.presentation.auth.WinningHistoryScreen
@@ -68,14 +71,17 @@ class MainActivity : ComponentActivity() {
                         }
                         composable("bank_details")  { BankDetailsScreen(navController) }
                         composable("winning_history") {
-                            WinningHistoryScreen(navController = navController)
+                            val context = LocalContext.current
+                            val token   = TokenManager.getToken(context)
+
+                            WinningHistoryScreen(navController = navController, token = token)
                         }
                         composable("privacy_policy") {
                             PrivacyPolicyScreen(navController = navController)
                         }
                         composable("history")       { HistoryScreen(navController) }
                         composable("chart")         { ChartScreen(navController) }
-                        composable("game_result") { ResultScreen(navController)}
+                        composable("result") { ResultScreen(navController)}
                         composable("withdraw_history"){ WithdrawalHistoryScreen(navController) }
                         composable("how_to_play")  { HowToPlayScreen(navController) }
                         composable("game_rate"){ GameRatesScreen(navController)}
@@ -97,4 +103,3 @@ class MainActivity : ComponentActivity() {
         }
     }
 }
-

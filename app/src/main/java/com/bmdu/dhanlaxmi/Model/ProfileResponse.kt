@@ -8,6 +8,7 @@ data class ProfileResponse(
 data class ProfileData(
     val name: String,
     val password: String,
+    val phone: String?,
     val customer_id: String,
     val wallet_amount: Int?
 )

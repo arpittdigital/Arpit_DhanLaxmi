@@ -2,6 +2,8 @@ package com.bmdu.dhanlaxmi.Api
 
 import com.bmdu.dhanlaxmi.Model.BankDetailsRequest
 import com.bmdu.dhanlaxmi.Model.BankdetailsResponse
+import com.bmdu.dhanlaxmi.Model.CreatePaymentRequest
+import com.bmdu.dhanlaxmi.Model.CreatePaymentResponse
 import com.bmdu.dhanlaxmi.Model.ForgotRequest
 import com.bmdu.dhanlaxmi.Model.GETBankDetailsResponse
 import com.bmdu.dhanlaxmi.Model.GameResponse
@@ -16,6 +18,7 @@ import com.bmdu.dhanlaxmi.Model.ResultResponse
 import com.bmdu.dhanlaxmi.Model.SignupRequest
 import com.bmdu.dhanlaxmi.Model.SignupResponse
 import com.bmdu.dhanlaxmi.Model.VerifyOtpRequest
+import com.bmdu.dhanlaxmi.Model.WinningHistoryResponse
 import com.bmdu.dhanlaxmi.Model.addfundsRequest
 import com.bmdu.dhanlaxmi.Model.addfundsResponse
 import com.bmdu.dhanlaxmi.Model.forgotResponse
@@ -29,12 +32,14 @@ import com.bmdu.dhanlaxmi.Model.resetPasswordResponse
 import com.bmdu.dhanlaxmi.Model.verifyOtpResponse
 import com.bmdu.dhanlaxmi.Model.withdrawalRequest
 import com.bmdu.dhanlaxmi.Model.withdrawalResponse
+import com.google.gson.JsonObject
 import retrofit2.Response
 import retrofit2.http.Body
 import retrofit2.http.GET
 import retrofit2.http.Header
 import retrofit2.http.POST
 import retrofit2.http.Path
+import retrofit2.http.Url
 
 interface ApiService {
 
@@ -153,6 +158,22 @@ interface ApiService {
         @Path("game_id") gameId: Int,
         @Body playBahar: playBahar
     ): Response<playBaharResponse>
+
+    @POST("api/create-payment")
+    suspend fun createPayment(
+        @Header("Authorization") token: String,
+        @Body request: CreatePaymentRequest
+    ): Response<CreatePaymentResponse>
+
+    @GET("api/winning-history") // ← Replace with your actual endpoint
+    suspend fun getWinningHistory(
+        @Header("Authorization") token: String
+    ): Response<WinningHistoryResponse>
+
+    @GET
+    suspend fun checkPaymentStatus(
+        @Url url: String
+    ): Response<JsonObject>
 }
 
 

@@ -10,11 +10,14 @@ data class SignupData(
     val id: Int,
     val cin: String,
     val name: String,
-    val phone: String
+    val phone: String,
+    val token: String?
 )
 
 data class SignupRequest(
     val name: String,
     val mobile: String,
-    val password: String
+    val password: String,
+    val password_confirmation: String
+
 )

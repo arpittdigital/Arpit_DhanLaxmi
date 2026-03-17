@@ -76,19 +76,20 @@ fun LoginScreen(navController: NavController) {
     var passwordError by remember { mutableStateOf("") }
 
     val viewModel: AuthViewModel = viewModel()
-    val state by viewModel.authState.collectAsState()
+    // ✅ Renamed to avoid conflict
+    val authState by viewModel.authState.collectAsState()
     val context = LocalContext.current
 
-    LaunchedEffect(state) {
-        when (state) {
+    LaunchedEffect(authState) {
+        when (authState) {
             is AuthViewModel.AuthState.Success -> {
                 navController.navigate("home") {
-                    popUpTo("login") { inclusive = true }
+                    popUpTo(0) { inclusive = true }
                 }
                 viewModel.resetState()
             }
             is AuthViewModel.AuthState.Error -> {
-                val errorMsg = (state as AuthViewModel.AuthState.Error).message
+                val errorMsg = (authState as AuthViewModel.AuthState.Error).message
                 Toast.makeText(context, errorMsg, Toast.LENGTH_SHORT).show()
                 viewModel.resetState()
             }
@@ -299,7 +300,7 @@ fun LoginScreen(navController: NavController) {
 
                 Spacer(modifier = Modifier.height(10.dp))
 
-                if (state is AuthViewModel.AuthState.Loading) {
+                if (authState is AuthViewModel.AuthState.Loading) {
                     CircularProgressIndicator(
                         strokeWidth = 2.dp,
                         modifier    = Modifier.size(20.dp)
@@ -310,10 +311,10 @@ fun LoginScreen(navController: NavController) {
                 Button(
                     onClick = {
                         if (validate()) {
-                            viewModel.login(mobileno, password, context)
+                            viewModel.login(mobileno, password)
                         }
                     },
-                    enabled         = state !is AuthViewModel.AuthState.Loading,
+                    enabled         = authState !is AuthViewModel.AuthState.Loading,
                     shape           = RoundedCornerShape(12.dp),
                     contentPadding  = PaddingValues(0.dp),
                     colors          = ButtonDefaults.buttonColors(containerColor = Color.Transparent),

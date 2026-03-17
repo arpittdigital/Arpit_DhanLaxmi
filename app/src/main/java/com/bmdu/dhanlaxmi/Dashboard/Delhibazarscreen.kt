@@ -5,9 +5,6 @@ import android.content.Context
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.lazy.grid.GridCells
-import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
-import androidx.compose.foundation.lazy.grid.itemsIndexed
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
@@ -62,7 +59,6 @@ fun DelhiBazarScreen(
     val totalAmount by derivedStateOf {
         amountMap.values.sumOf { it.toIntOrNull() ?: 0 }
     }
-
     val playState by gameViewModel.playState.collectAsState()
     val isLoading = playState is GameViewModel.PlayState.Loading
 
@@ -247,11 +243,11 @@ fun DelhiBazarScreen(
                             val amt = amtStr.toIntOrNull() ?: 0
                             if (amt > 0) {
                                 gameViewModel.playGame(
-                                    token    = token,
-                                    gameId   = gameId,
+                                    token = token,
+                                    gameId = gameId,
                                     playType = playTypes[selectedTab],
-                                    number   = number.toString().padStart(2, '0'),
-                                    amount   = amt
+                                    number = number.toString().padStart(2, '0'),
+                                    amount = amt
                                 )
                             }
                         }
@@ -522,11 +518,11 @@ private fun JodiScreen(
                             if (amt > 0) {
                                 Log.d("JodiAPI", "Calling playGame: jodi=$number, amount=$amt")
                                 gameViewModel.playGame(
-                                    token    = token,
-                                    gameId   = gameId,
+                                    token = token,
+                                    gameId = gameId,
                                     playType = "jodi",
-                                    number   = number.toString().padStart(2, '0'),
-                                    amount   = amt
+                                    number = number.toString().padStart(2, '0'),
+                                    amount = amt
                                 )
                             }
                         }
@@ -537,7 +533,7 @@ private fun JodiScreen(
                             if (amt > 0) {
                                 Log.d("AndarAPI", "Calling andarPlayGame: andar=$number, amount=$amt")
                                 gameViewModel.andarPlayGame(
-                                    token  = token,
+                                    token = token,
                                     gameId = gameId,
                                     number = number.toString(),
                                     amount = amt
@@ -551,7 +547,7 @@ private fun JodiScreen(
                             if (amt > 0) {
                                 Log.d("BaharAPI", "Calling baharPlayGame: bahar=$number, amount=$amt")
                                 gameViewModel.baharPlayGame(
-                                    token  = token,
+                                    token = token,
                                     gameId = gameId,
                                     number = number.toString(),
                                     amount = amt

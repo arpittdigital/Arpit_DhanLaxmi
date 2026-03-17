@@ -33,6 +33,10 @@ import kotlinx.coroutines.delay
 fun SplashScreen(navController: NavController,context: Context){
 
     LaunchedEffect(Unit) {
+
+//        context.getSharedPreferences("auth_prefs", Context.MODE_PRIVATE)
+//            .edit().clear().apply()
+
         delay(2000)
 
         val prefs = context.getSharedPreferences("auth_prefs", Context.MODE_PRIVATE)

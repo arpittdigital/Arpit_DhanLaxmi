@@ -169,7 +169,7 @@ fun HowToPlayScreen(navController: NavController) {
 @Composable
 fun ContactUsScreen(navController: NavController) {
 
-    // ⬇ Apna phone number yahan update karo
+
     val phoneNumber = "tel:+919999999999"
     val context     = LocalContext.current
 
