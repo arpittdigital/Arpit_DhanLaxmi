@@ -1,5 +1,6 @@
 package com.bmdu.dhanlaxmi.Dashboard
 
+import android.widget.Toast
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -17,6 +18,10 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import com.google.accompanist.swiperefresh.SwipeRefresh
+import com.google.accompanist.swiperefresh.SwipeRefreshIndicator
+import com.google.accompanist.swiperefresh.rememberSwipeRefreshState
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
@@ -179,14 +184,17 @@ fun HomeScreenContent(navController: NavController, onMenuClick: () -> Unit) {
     val viewModel: GameViewModel = viewModel()
     val gameState by viewModel.gamestate.collectAsState()
 
+    // ✅ Pull to refresh state
+    val isRefreshing = gameState is GameViewModel.GameState.Loading
+
     LaunchedEffect(Unit) { viewModel.fetchGames(token) }
 
     val navBackStack by navController.currentBackStackEntryAsState()
     val currentRoute  = navBackStack?.destination?.route ?: "home"
 
     Scaffold(
-        topBar        = { TopBar(onMenuClick = onMenuClick, navController = navController) },
-        bottomBar     = { BottomNavigationBar(currentRoute = currentRoute, navController = navController) },
+        topBar         = { TopBar(onMenuClick = onMenuClick, navController = navController) },
+        bottomBar      = { BottomNavigationBar(currentRoute = currentRoute, navController = navController) },
         containerColor = DarkGreen
     ) { padding ->
         Column(
@@ -194,7 +202,6 @@ fun HomeScreenContent(navController: NavController, onMenuClick: () -> Unit) {
                 .fillMaxSize()
                 .padding(padding)
         ) {
-            // Slim hero strip — only 70dp, card will overlap it
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -202,13 +209,11 @@ fun HomeScreenContent(navController: NavController, onMenuClick: () -> Unit) {
                     .background(Brush.verticalGradient(listOf(MidGreen, DarkGreen)))
             )
 
-            // Quick action card overlaps the hero
             QuickActionButtons(navController = navController)
 
-            // Tighten the gap left by the negative offset
             Spacer(Modifier.height((-24).dp))
 
-            // Game Result button — no extra top gap
+            // Game Result button
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -220,20 +225,9 @@ fun HomeScreenContent(navController: NavController, onMenuClick: () -> Unit) {
                 contentAlignment = Alignment.Center
             ) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(
-                        Icons.Default.PlayCircle,
-                        contentDescription = null,
-                        tint     = BlackText,
-                        modifier = Modifier.size(22.dp)
-                    )
+                    Icon(Icons.Default.PlayCircle, contentDescription = null, tint = BlackText, modifier = Modifier.size(22.dp))
                     Spacer(Modifier.width(10.dp))
-                    Text(
-                        "Game Result",
-                        color         = BlackText,      // ✅ BLACK on gold — fully visible
-                        fontSize      = 16.sp,
-                        fontWeight    = FontWeight.Bold,
-                        letterSpacing = 0.4.sp
-                    )
+                    Text("Game Result", color = BlackText, fontSize = 16.sp, fontWeight = FontWeight.Bold, letterSpacing = 0.4.sp)
                 }
             }
 
@@ -241,81 +235,86 @@ fun HomeScreenContent(navController: NavController, onMenuClick: () -> Unit) {
 
             // Live Games label
             Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 16.dp),
+                modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Box(
-                    modifier = Modifier
-                        .width(4.dp).height(20.dp)
-                        .clip(RoundedCornerShape(2.dp))
-                        .background(brush = GoldTheme.metallicBrush)
-                )
+                Box(modifier = Modifier.width(4.dp).height(20.dp).clip(RoundedCornerShape(2.dp)).background(brush = GoldTheme.metallicBrush))
                 Spacer(Modifier.width(10.dp))
-                Text(
-                    "Live Games",
-                    color         = GoldText,           // ✅ bright gold on dark green — visible
-                    fontSize      = 15.sp,
-                    fontWeight    = FontWeight.Bold,
-                    letterSpacing = 0.8.sp
-                )
+                Text("Live Games", color = GoldText, fontSize = 15.sp, fontWeight = FontWeight.Bold, letterSpacing = 0.8.sp)
             }
 
             Spacer(Modifier.height(10.dp))
 
-            // Games list
-            when (val s = gameState) {
-                is GameViewModel.GameState.Loading -> {
-                    Box(Modifier.fillMaxWidth().weight(1f), Alignment.Center) {
-                        Box(
-                            modifier = Modifier
-                                .size(64.dp)
-                                .background(brush = GoldTheme.metallicBrush, shape = CircleShape),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            CircularProgressIndicator(
-                                modifier    = Modifier.size(44.dp),
-                                color       = BlackText,
-                                trackColor  = Color(0x30000000),
-                                strokeWidth = 4.dp
-                            )
-                        }
-                    }
-                }
-
-                is GameViewModel.GameState.Error -> {
-                    Box(Modifier.fillMaxWidth().weight(1f), Alignment.Center) {
-                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                            Icon(Icons.Default.ErrorOutline, null, tint = GoldText.copy(alpha = 0.7f), modifier = Modifier.size(48.dp))
-                            Spacer(Modifier.height(12.dp))
-                            Text(s.message, color = Color.White.copy(alpha = 0.8f), fontSize = 14.sp, textAlign = TextAlign.Center, modifier = Modifier.padding(horizontal = 32.dp))
-                            Spacer(Modifier.height(16.dp))
+            // ✅ Wrap game list in SwipeRefresh
+            SwipeRefresh(
+                state    = rememberSwipeRefreshState(isRefreshing),
+                onRefresh = { viewModel.fetchGames(token) },  // ✅ re-fetch on pull
+                indicator = { state, trigger ->
+                    SwipeRefreshIndicator(
+                        state            = state,
+                        refreshTriggerDistance = trigger,
+                        backgroundColor  = CardGreen,         // ✅ match app theme
+                        contentColor     = GoldText,          // ✅ gold spinner
+                        scale            = true
+                    )
+                },
+                modifier = Modifier.fillMaxWidth().weight(1f)
+            ) {
+                when (val s = gameState) {
+                    is GameViewModel.GameState.Loading -> {
+                        Box(Modifier.fillMaxSize(), Alignment.Center) {
                             Box(
                                 modifier = Modifier
-                                    .background(brush = GoldTheme.metallicBrush, shape = RoundedCornerShape(8.dp))
-                                    .clickable { viewModel.fetchGames(token) }
-                                    .padding(horizontal = 24.dp, vertical = 10.dp),
+                                    .size(64.dp)
+                                    .background(brush = GoldTheme.metallicBrush, shape = CircleShape),
                                 contentAlignment = Alignment.Center
                             ) {
-                                Text("Retry", color = BlackText, fontWeight = FontWeight.Bold)
+                                CircularProgressIndicator(
+                                    modifier    = Modifier.size(44.dp),
+                                    color       = BlackText,
+                                    trackColor  = Color(0x30000000),
+                                    strokeWidth = 4.dp
+                                )
                             }
                         }
                     }
-                }
 
-                is GameViewModel.GameState.Success -> {
-                    LazyColumn(
-                        modifier            = Modifier.fillMaxWidth().weight(1f),
-                        contentPadding      = PaddingValues(horizontal = 16.dp, vertical = 4.dp),
-                        verticalArrangement = Arrangement.spacedBy(10.dp)
-                    ) {
-                        items(s.games) { game ->
-                            ApiGameCard(
-                                game        = game,
-                                onCardClick = { navController.navigate("delhi_bazar/${game.id}/${game.game_name}") },
-                                onPlayClick = { navController.navigate("delhi_bazar/${game.id}/${game.game_name}") }
-                            )
+                    is GameViewModel.GameState.Error -> {
+                        Box(Modifier.fillMaxSize(), Alignment.Center) {
+                            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                Icon(Icons.Default.ErrorOutline, null, tint = GoldText.copy(alpha = 0.7f), modifier = Modifier.size(48.dp))
+                                Spacer(Modifier.height(12.dp))
+                                Text(s.message, color = Color.White.copy(alpha = 0.8f), fontSize = 14.sp, textAlign = TextAlign.Center, modifier = Modifier.padding(horizontal = 32.dp))
+                                Spacer(Modifier.height(16.dp))
+                                Box(
+                                    modifier = Modifier
+                                        .background(brush = GoldTheme.metallicBrush, shape = RoundedCornerShape(8.dp))
+                                        .clickable { viewModel.fetchGames(token) }
+                                        .padding(horizontal = 24.dp, vertical = 10.dp),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Text("Retry", color = BlackText, fontWeight = FontWeight.Bold)
+                                }
+                            }
+                        }
+                    }
+
+                    is GameViewModel.GameState.Success -> {
+                        val sortedGames = s.games.sortedByDescending {
+                            it.status.equals("play", ignoreCase = true)
+                        }
+                        LazyColumn(
+                            modifier            = Modifier.fillMaxSize(),
+                            contentPadding      = PaddingValues(horizontal = 16.dp, vertical = 4.dp),
+                            verticalArrangement = Arrangement.spacedBy(10.dp)
+                        ) {
+                            items(sortedGames) { game ->
+                                ApiGameCard(
+                                    game        = game,
+                                    onCardClick = { navController.navigate("delhi_bazar/${game.id}/${game.game_name}") },
+                                    onPlayClick = { navController.navigate("delhi_bazar/${game.id}/${game.game_name}") }
+                                )
+                            }
                         }
                     }
                 }
@@ -330,6 +329,7 @@ fun HomeScreenContent(navController: NavController, onMenuClick: () -> Unit) {
 
 @Composable
 fun ApiGameCard(game: GameData, onCardClick: () -> Unit = {}, onPlayClick: () -> Unit = {}) {
+    val context    = LocalContext.current
     val gameName   = game.game_name ?: "Game"
     val resultTime = if (game.result_time.isNullOrBlank()) "Pending" else game.result_time
     val closeTime  = game.close_time ?: "--"
@@ -337,87 +337,185 @@ fun ApiGameCard(game: GameData, onCardClick: () -> Unit = {}, onPlayClick: () ->
     val playDays   = game.play_days?.joinToString(" · ") ?: ""
     val isPlayable = status.equals("play", ignoreCase = true)
 
+    // ✅ Format time to 12hr AM/PM
+    fun formatTime(time: String): String {
+        return try {
+            val input  = java.text.SimpleDateFormat("HH:mm", java.util.Locale.US)
+            val output = java.text.SimpleDateFormat("hh:mm a", java.util.Locale.US)
+            output.format(input.parse(time)!!)
+        } catch (e: Exception) {
+            try {
+                // already in 12hr format
+                val input  = java.text.SimpleDateFormat("hh:mm a", java.util.Locale.US)
+                val output = java.text.SimpleDateFormat("hh:mm a", java.util.Locale.US)
+                output.format(input.parse(time.trim())!!)
+            } catch (e2: Exception) {
+                time // return as-is if parsing fails
+            }
+        }
+    }
+
+    val formattedClose = formatTime(closeTime)
+    val formattedOpen  = "07:00 AM"
+
     Card(
-        modifier  = Modifier.fillMaxWidth().clickable { onCardClick() },
+        modifier  = Modifier
+            .fillMaxWidth()
+            .clickable {
+                if (isPlayable) onCardClick()
+                else Toast.makeText(
+                    context,
+                    "⛔ This game is closed. Opens tomorrow at 07:00 AM",
+                    Toast.LENGTH_SHORT
+                ).show()
+            },
         shape     = RoundedCornerShape(14.dp),
         colors    = CardDefaults.cardColors(containerColor = CardGreen),
-        elevation = CardDefaults.cardElevation(4.dp)
+        elevation = CardDefaults.cardElevation(if (isPlayable) 4.dp else 1.dp)
     ) {
-        // Gold top accent line
-        Box(Modifier.fillMaxWidth().height(2.dp).background(brush = GoldTheme.metallicBrushHorizontal))
+        // ✅ Top accent — gold if open, gray if closed
+        Box(
+            Modifier.fillMaxWidth().height(2.dp).background(
+                brush = if (isPlayable)
+                    GoldTheme.metallicBrushHorizontal
+                else
+                    Brush.horizontalGradient(listOf(Color.Gray, Color.DarkGray))
+            )
+        )
 
-        Row(
-            modifier              = Modifier.fillMaxWidth().padding(horizontal = 14.dp, vertical = 14.dp),
-            verticalAlignment     = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.SpaceBetween
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 14.dp, vertical = 12.dp)
         ) {
-            // Result circle — gold ring border
-            Box(
-                modifier = Modifier
-                    .size(66.dp)
-                    .border(2.dp, brush = GoldTheme.metallicBrush, shape = CircleShape)
-                    .padding(3.dp),
-                contentAlignment = Alignment.Center
+            // ── Row 1: Result circle + Game name + Status dot ──
+            Row(
+                modifier          = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically
             ) {
+                // Result circle
                 Box(
-                    modifier         = Modifier.fillMaxSize().clip(CircleShape).background(CardGreenDark),
+                    modifier = Modifier
+                        .size(56.dp)
+                        .border(
+                            2.dp,
+                            brush = if (isPlayable) GoldTheme.metallicBrush
+                            else Brush.linearGradient(listOf(Color.Gray, Color.DarkGray)),
+                            shape = CircleShape
+                        )
+                        .padding(3.dp),
                     contentAlignment = Alignment.Center
                 ) {
-                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        Text(
-                            text       = resultTime,
-                            color      = GoldText,       // ✅ bright gold on dark — visible
-                            fontSize   = 10.sp,
-                            fontWeight = FontWeight.Bold,
-                            textAlign  = TextAlign.Center
-                        )
-                        Text("Result", color = Color.White.copy(alpha = 0.6f), fontSize = 8.sp)
+                    Box(
+                        modifier         = Modifier.fillMaxSize().clip(CircleShape).background(CardGreenDark),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                            Text(
+                                resultTime,
+                                color      = GoldText,
+                                fontSize   = 9.sp,
+                                fontWeight = FontWeight.Bold,
+                                textAlign  = TextAlign.Center
+                            )
+                            Text("Result", color = Color.White.copy(alpha = 0.6f), fontSize = 7.sp)
+                        }
                     }
                 }
-            }
 
-            // Info
-            Column(modifier = Modifier.weight(1f).padding(horizontal = 12.dp)) {
-                Text(
-                    text       = gameName,
-                    color      = Color.White,            // ✅ white on green — visible
-                    fontSize   = 15.sp,
-                    fontWeight = FontWeight.Bold
+                Spacer(Modifier.width(12.dp))
+
+                // Game name + play days
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        gameName,
+                        color      = Color.White,
+                        fontSize   = 15.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                    if (playDays.isNotBlank()) {
+                        Spacer(Modifier.height(2.dp))
+                        Text(
+                            playDays,
+                            color    = GoldText.copy(alpha = 0.75f),
+                            fontSize = 10.sp
+                        )
+                    }
+                }
+
+                // ✅ Green/Red status dot
+                Box(
+                    modifier = Modifier
+                        .size(10.dp)
+                        .clip(CircleShape)
+                        .background(
+                            if (isPlayable) Color(0xFF00E676)  // green
+                            else Color(0xFFFF5252)              // red
+                        )
                 )
-                Spacer(Modifier.height(4.dp))
+            }
+
+            Spacer(Modifier.height(10.dp))
+
+
+            // ── Row 2: Open time (left) | Close time (right) ──
+            Row(
+                modifier              = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment     = Alignment.CenterVertically
+            ) {
+                // Open time — left
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(Icons.Default.Schedule, null, tint = GoldText.copy(alpha = 0.85f), modifier = Modifier.size(12.dp))
-                    Spacer(Modifier.width(4.dp))
+                    Box(
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(4.dp))
+                            .background(Color(0xFF1A5C1A))
+                            .padding(horizontal = 6.dp, vertical = 3.dp)
+                    ) {
+                        Text(
+                            "Open",
+                            color      = Color(0xFF00E676),
+                            fontSize   = 12.sp,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
+                    Spacer(Modifier.width(5.dp))
                     Text(
-                        "Close: $closeTime",
-                        color    = Color.White.copy(alpha = 0.80f),  // ✅ white — readable
-                        fontSize = 12.sp
+                        formattedOpen,
+                        color      = Color(0xFF00E676),  // ✅ green color same as OPEN badge
+                        fontSize   = 12.sp,
+                        fontWeight = FontWeight.Medium
                     )
                 }
-                if (playDays.isNotBlank()) {
-                    Spacer(Modifier.height(3.dp))
+
+                // Close time — right
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    // ✅ No box — just plain red text label
                     Text(
-                        playDays,
-                        color    = GoldText.copy(alpha = 0.80f),     // ✅ gold — readable
-                        fontSize = 10.sp
+                        "Close: $formattedClose",
+                        color      = Color(0xFFFF5252),  // ✅ plain red text, no background box
+                        fontSize   = 12.sp,
+                        fontWeight = FontWeight.Medium
                     )
                 }
             }
 
-            // Play / Closed
+            Spacer(Modifier.height(10.dp))
+
+            // ── Row 3: Play / Closed button full width ──
             if (isPlayable) {
                 Box(
                     modifier = Modifier
-                        .height(38.dp)
+                        .fillMaxWidth()
+                        .height(36.dp)
                         .shadow(3.dp, RoundedCornerShape(10.dp))
                         .background(brush = GoldTheme.metallicBrush, shape = RoundedCornerShape(10.dp))
-                        .clickable { onPlayClick() }
-                        .padding(horizontal = 20.dp),
+                        .clickable { onPlayClick() },
                     contentAlignment = Alignment.Center
                 ) {
                     Text(
-                        "Play",
-                        color      = BlackText,          // ✅ dark on gold — clearly visible
+                        "▶  Play Now",
+                        color      = BlackText,
                         fontWeight = FontWeight.Bold,
                         fontSize   = 13.sp
                     )
@@ -425,17 +523,25 @@ fun ApiGameCard(game: GameData, onCardClick: () -> Unit = {}, onPlayClick: () ->
             } else {
                 Box(
                     modifier = Modifier
+                        .fillMaxWidth()
+                        .height(36.dp)
                         .clip(RoundedCornerShape(10.dp))
-                        .background(Color(0x33FFFFFF))
-                        .border(1.dp, Color.White.copy(alpha = 0.15f), RoundedCornerShape(10.dp))
-                        .padding(horizontal = 12.dp, vertical = 9.dp)
+                        .background(Color(0x22FF5252))
+                        .border(1.dp, Color(0xFFFF5252).copy(alpha = 0.3f), RoundedCornerShape(10.dp))
+                        .clickable {
+                            Toast.makeText(
+                                context,
+                                "⛔ This game is closed. Opens tomorrow at 07:00 AM",
+                                Toast.LENGTH_SHORT
+                            ).show()
+                        },
+                    contentAlignment = Alignment.Center
                 ) {
                     Text(
-                        status.uppercase(),
-                        color         = Color.White.copy(alpha = 0.65f),
-                        fontSize      = 10.sp,
-                        fontWeight    = FontWeight.SemiBold,
-                        letterSpacing = 0.8.sp
+                        "⛔  Closed — Opens 07:00 AM",
+                        color      = Color(0xFFFF5252).copy(alpha = 0.85f),
+                        fontSize   = 12.sp,
+                        fontWeight = FontWeight.SemiBold
                     )
                 }
             }
