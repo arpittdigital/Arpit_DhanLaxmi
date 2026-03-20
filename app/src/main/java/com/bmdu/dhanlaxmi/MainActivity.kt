@@ -1,6 +1,8 @@
 package com.bmdu.dhanlaxmi
 
+import android.content.Context
 import android.os.Bundle
+import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
@@ -29,6 +31,7 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         setContent {
+            val context = LocalContext.current
             val navController = rememberNavController()
             val authViewModel: AuthViewModel = viewModel()
             DhanLaxmiTheme {
@@ -79,7 +82,15 @@ class MainActivity : ComponentActivity() {
                         composable("privacy_policy") {
                             PrivacyPolicyScreen(navController = navController)
                         }
-                        composable("history")       { HistoryScreen(navController) }
+                        composable("history") {
+                            val sharedPref = context.getSharedPreferences("auth_prefs", Context.MODE_PRIVATE)
+                            val token = sharedPref.getString("auth_token", "") ?: ""
+                            Log.d("NAV", "History token: $token")
+                            HistoryScreen(
+                                token  = "Bearer $token",
+                                onBack = { navController.popBackStack() }
+                            )
+                        }
                         composable("chart")         { ChartScreen(navController) }
                         composable("result") { ResultScreen(navController)}
                         composable("withdraw_history"){ WithdrawalHistoryScreen(navController) }
@@ -87,6 +98,7 @@ class MainActivity : ComponentActivity() {
                         composable("game_rate"){ GameRatesScreen(navController)}
                         composable("contact_us")   { ContactUsScreen(navController) }
                         composable("notification") {NotificationScreen(navController)}
+//                        composable("game_result")  {"" }
 
                         composable("delhi_bazar/{gameId}/{gameName}") { backStack ->
                             val gameId = backStack.arguments?.getString("gameId")?.toIntOrNull() ?: 0

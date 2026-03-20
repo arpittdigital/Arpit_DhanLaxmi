@@ -39,6 +39,7 @@ import retrofit2.http.GET
 import retrofit2.http.Header
 import retrofit2.http.POST
 import retrofit2.http.Path
+import retrofit2.http.Query
 import retrofit2.http.Url
 
 interface ApiService {
@@ -127,6 +128,13 @@ interface ApiService {
         @Header("Authorization") token: String
     ): Response<PaymentHistoryResponse>
 
+    @GET("api/chart/filter")
+    suspend fun getChartFilter(
+        @Header("Authorization") token: String,
+        @Query("month") month: String,
+        @Query("year") year: String
+    ): Response<ResultResponse>
+
     @GET("api/bank-details")
     suspend fun getBankDetails(
         @Header("Authorization") token: String
@@ -165,7 +173,7 @@ interface ApiService {
         @Body request: CreatePaymentRequest
     ): Response<CreatePaymentResponse>
 
-    @GET("api/winning-history") // ← Replace with your actual endpoint
+    @GET("api/winning-history")
     suspend fun getWinningHistory(
         @Header("Authorization") token: String
     ): Response<WinningHistoryResponse>

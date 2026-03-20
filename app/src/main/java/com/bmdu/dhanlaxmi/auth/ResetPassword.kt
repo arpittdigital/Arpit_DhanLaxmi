@@ -281,7 +281,7 @@ fun ResetPassword(navController: NavController,
                                 Toast.makeText(context, "Passwords do not match", Toast.LENGTH_SHORT).show()
                             }
                             else -> {
-                                // ✅ Mobile ViewModel se internally le lega (savedMobile)
+                                // Mobile ViewModel se internally le lega (savedMobile)
                                 viewModel.resetPassword(password, confirmPassword)
                             }
                         }

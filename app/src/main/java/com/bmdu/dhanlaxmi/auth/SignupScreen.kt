@@ -46,15 +46,15 @@ fun SignupScreen(navController: NavController) {
     var usernameError by remember { mutableStateOf("") }
     var mobileError by remember { mutableStateOf("") }
     var passwordError by remember { mutableStateOf("") }
-    var errorMessage by remember { mutableStateOf("") }  // ✅ API error message
+    var errorMessage by remember { mutableStateOf("") }  // API error message
 
-    var isTermsAccepted by remember { mutableStateOf(false) }  // ✅ Terms checkbox state
+    var isTermsAccepted by remember { mutableStateOf(false) }  // Terms checkbox state
 
     val viewModel: AuthViewModel = androidx.lifecycle.viewmodel.compose.viewModel()
     val state by viewModel.authState.collectAsState()
     val context = LocalContext.current
 
-    // ✅ Handle auth state changes
+    //  Handle auth state changes
     LaunchedEffect(state) {
         when (state) {
             is AuthViewModel.AuthState.Success -> {
@@ -84,7 +84,7 @@ fun SignupScreen(navController: NavController) {
         }
     }
 
-    // ✅ Validation function
+    // Validation function
     fun validate(): Boolean {
         var isValid = true
 
@@ -145,7 +145,7 @@ fun SignupScreen(navController: NavController) {
                 verticalArrangement = Arrangement.Top
             ) {
 
-                // ✅ Back button — now actually navigates back
+                // Back button — now actually navigates back
                 Box(modifier = Modifier.fillMaxWidth()) {
                     Icon(
                         imageVector = Icons.Default.ArrowBack,
@@ -155,7 +155,7 @@ fun SignupScreen(navController: NavController) {
                             .align(Alignment.TopStart)
                             .padding(top = 40.dp, start = 25.dp)
                             .size(28.dp)
-                            .clickable { navController.popBackStack() }  // ✅ Fixed
+                            .clickable { navController.popBackStack() }  // Fixed
                     )
                 }
 
@@ -187,7 +187,7 @@ fun SignupScreen(navController: NavController) {
 
                 Spacer(modifier = Modifier.height(10.dp))
 
-                // ✅ Username field
+                //  Username field
                 OutlinedTextField(
                     value = username,
                     onValueChange = {
@@ -220,7 +220,7 @@ fun SignupScreen(navController: NavController) {
                         .fillMaxWidth()
                         .padding(top = 10.dp, start = 20.dp, end = 20.dp)
                 )
-                // ✅ Username error text
+                // Username error text
                 if (usernameError.isNotEmpty()) {
                     Text(
                         text = usernameError,
@@ -232,7 +232,7 @@ fun SignupScreen(navController: NavController) {
                     )
                 }
 
-                // ✅ Mobile field
+                // Mobile field
                 OutlinedTextField(
                     value = mobile,
                     onValueChange = {
@@ -266,7 +266,7 @@ fun SignupScreen(navController: NavController) {
                         .fillMaxWidth()
                         .padding(start = 20.dp, end = 20.dp, top = 15.dp)
                 )
-                // ✅ Mobile error text
+                // Mobile error text
                 if (mobileError.isNotEmpty()) {
                     Text(
                         text = mobileError,
@@ -278,7 +278,7 @@ fun SignupScreen(navController: NavController) {
                     )
                 }
 
-                // ✅ Password field
+                // Password field
                 OutlinedTextField(
                     value = password,
                     onValueChange = {
@@ -294,7 +294,7 @@ fun SignupScreen(navController: NavController) {
                             tint = Color.White
                         )
                     },
-                    visualTransformation = PasswordVisualTransformation(),  // ✅ Hides password
+                    visualTransformation = PasswordVisualTransformation(),  // Hides password
                     isError = passwordError.isNotEmpty(),
                     singleLine = true,
                     shape = RoundedCornerShape(12.dp),
@@ -312,7 +312,7 @@ fun SignupScreen(navController: NavController) {
                         .fillMaxWidth()
                         .padding(start = 20.dp, end = 20.dp, top = 15.dp)
                 )
-                // ✅ Password error text
+                // Password error text
                 if (passwordError.isNotEmpty()) {
                     Text(
                         text = passwordError,
@@ -324,7 +324,7 @@ fun SignupScreen(navController: NavController) {
                     )
                 }
 
-                // ✅ Terms & Conditions — now functional
+                //  Terms & Conditions — now functional
                 Row(
                     modifier = Modifier
                         .padding(start = 10.dp, top = 10.dp)
@@ -357,7 +357,7 @@ fun SignupScreen(navController: NavController) {
                     )
                 }
 
-                // ✅ API error message shown to user
+                // API error message shown to user
                 if (errorMessage.isNotEmpty()) {
                     Text(
                         text = errorMessage,
@@ -370,7 +370,7 @@ fun SignupScreen(navController: NavController) {
                     )
                 }
 
-                // ✅ Loading indicator
+                // Loading indicator
                 if (state is AuthViewModel.AuthState.Loading) {
                     CircularProgressIndicator(
                         strokeWidth = 2.dp,
@@ -381,7 +381,7 @@ fun SignupScreen(navController: NavController) {
                     )
                 }
 
-                // ✅ Register button — validates terms + form before calling API
+                // Register button — validates terms + form before calling API
                 Button(
                     onClick = {
                         errorMessage = ""

@@ -95,32 +95,35 @@ fun ChartScreen(
     var expandMonth   by remember { mutableStateOf(false) }
     var expandYear    by remember { mutableStateOf(false) }
 
-    val resultState by gameViewModel.resultState.collectAsState()
-
-    LaunchedEffect(Unit) {
-        gameViewModel.getresult(token)
+    // ✅ Converts "March" → "3"
+    val monthNumber by remember(selectedMonth) {
+        derivedStateOf {
+            (months.indexOf(selectedMonth) + 1).toString()
+        }
     }
 
-    // City names from API data
-    val cityNames by remember(resultState) {
+    val resultState by gameViewModel.resultState.collectAsState()
+
+    // ✅ Single LaunchedEffect — removed duplicate, passes month/year
+    LaunchedEffect(Unit) {
+        gameViewModel.getresult(token, null, null)
+    }
+
+    // ✅ game names from API response
+    val gameNames by remember(resultState) {
         derivedStateOf {
             if (resultState is GameViewModel.ResultState.Success) {
                 val data = (resultState as GameViewModel.ResultState.Success).data
-                data.flatMap { it.games }.map { it.city_name }.distinct()
+                data.flatMap { it.games }.map { it.game_name }.distinct()
             } else emptyList()
         }
     }
 
-    // Filter by selected month + year
-    val filteredDates by remember(resultState, selectedMonth, selectedYear) {
+    // ✅ Use API data directly — removed local filteredDates
+    val dates by remember(resultState) {
         derivedStateOf {
             if (resultState is GameViewModel.ResultState.Success) {
-                val data = (resultState as GameViewModel.ResultState.Success).data
-                val monthIndex = (months.indexOf(selectedMonth) + 1).toString().padStart(2, '0')
-                data.filter { dateGroup ->
-                    val prefix = "$selectedYear-$monthIndex"
-                    dateGroup.date.startsWith(prefix)
-                }
+                (resultState as GameViewModel.ResultState.Success).data
             } else emptyList()
         }
     }
@@ -128,18 +131,14 @@ fun ChartScreen(
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(
-                Brush.verticalGradient(
-                    colors = listOf(Color(0xFF00A904), GreenDark)
-                )
-            )
+            .background(Color(0xFF1A8C00))
     ) {
 
         // ── Top Bar ──────────────────────────────────────
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .background(YellowMain)
+                .background(Color(0xFFE6B800))
                 .padding(horizontal = 16.dp, vertical = 14.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
@@ -149,16 +148,16 @@ fun ChartScreen(
                 modifier = Modifier.clickable { navController.navigateUp() },
                 tint = Color.Black
             )
-            Spacer(Modifier.width(16.dp))
+            Spacer(Modifier.width(12.dp))
             Text(
-                "Record Chart",
+                "Chart",
                 fontSize   = 20.sp,
                 fontWeight = FontWeight.Bold,
                 color      = Color.Black
             )
         }
 
-        Column(modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp)) {
+        Column(modifier = Modifier.padding(horizontal = 12.dp, vertical = 14.dp)) {
 
             // ── Month / Year / Search Row ─────────────────
             Row(
@@ -168,29 +167,35 @@ fun ChartScreen(
             ) {
                 // Month Dropdown
                 Box(modifier = Modifier.weight(1.4f)) {
-                    OutlinedButton(
-                        onClick = { expandMonth = true },
-                        shape   = RoundedCornerShape(10.dp),
-                        colors  = ButtonDefaults.outlinedButtonColors(containerColor = Color.White),
-                        contentPadding = PaddingValues(horizontal = 12.dp, vertical = 0.dp),
+                    Box(
                         modifier = Modifier
                             .fillMaxWidth()
                             .height(46.dp)
+                            .clip(RoundedCornerShape(12.dp))
+                            .background(Color(0xFF1A1A1A))
+                            .clickable { expandMonth = true }
+                            .padding(horizontal = 14.dp),
+                        contentAlignment = Alignment.Center
                     ) {
-                        Text(
-                            selectedMonth,
-                            color    = Color.Black,
-                            fontSize = 13.sp,
-                            modifier = Modifier.weight(1f),
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis
-                        )
-                        Icon(
-                            Icons.Default.ArrowDropDown,
-                            contentDescription = null,
-                            tint     = Color.Black,
-                            modifier = Modifier.size(18.dp)
-                        )
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Text(
+                                selectedMonth,
+                                color    = Color.White,
+                                fontSize = 14.sp,
+                                modifier = Modifier.weight(1f),
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
+                            )
+                            Icon(
+                                Icons.Default.ArrowDropDown,
+                                contentDescription = null,
+                                tint     = Color.White,
+                                modifier = Modifier.size(20.dp)
+                            )
+                        }
                     }
                     DropdownMenu(
                         expanded         = expandMonth,
@@ -207,27 +212,33 @@ fun ChartScreen(
 
                 // Year Dropdown
                 Box(modifier = Modifier.weight(0.9f)) {
-                    OutlinedButton(
-                        onClick = { expandYear = true },
-                        shape   = RoundedCornerShape(10.dp),
-                        colors  = ButtonDefaults.outlinedButtonColors(containerColor = Color.White),
-                        contentPadding = PaddingValues(horizontal = 12.dp, vertical = 0.dp),
+                    Box(
                         modifier = Modifier
                             .fillMaxWidth()
                             .height(46.dp)
+                            .clip(RoundedCornerShape(12.dp))
+                            .background(Color(0xFF1A1A1A))
+                            .clickable { expandYear = true }
+                            .padding(horizontal = 14.dp),
+                        contentAlignment = Alignment.Center
                     ) {
-                        Text(
-                            selectedYear,
-                            color    = Color.Black,
-                            fontSize = 13.sp,
-                            modifier = Modifier.weight(1f)
-                        )
-                        Icon(
-                            Icons.Default.ArrowDropDown,
-                            contentDescription = null,
-                            tint     = Color.Black,
-                            modifier = Modifier.size(18.dp)
-                        )
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Text(
+                                selectedYear,
+                                color    = Color.White,
+                                fontSize = 14.sp,
+                                modifier = Modifier.weight(1f)
+                            )
+                            Icon(
+                                Icons.Default.ArrowDropDown,
+                                contentDescription = null,
+                                tint     = Color.White,
+                                modifier = Modifier.size(20.dp)
+                            )
+                        }
                     }
                     DropdownMenu(
                         expanded         = expandYear,
@@ -242,20 +253,22 @@ fun ChartScreen(
                     }
                 }
 
-                // Search Button
+                // ✅ Search Button — passes monthNumber and selectedYear
                 Box(
                     modifier = Modifier
                         .size(46.dp)
-                        .clip(RoundedCornerShape(10.dp))
-                        .background(YellowMain)
-                        .clickable { gameViewModel.getresult(token) },
+                        .clip(RoundedCornerShape(12.dp))
+                        .background(Color(0xFF1A1A1A))
+                        .clickable {
+                            gameViewModel.getresult(token, monthNumber, selectedYear)
+                        },
                     contentAlignment = Alignment.Center
                 ) {
-                    Icon(Icons.Default.Search, contentDescription = "Search", tint = Color.Black)
+                    Icon(Icons.Default.Search, contentDescription = "Search", tint = Color.White)
                 }
             }
 
-            Spacer(Modifier.height(12.dp))
+            Spacer(Modifier.height(16.dp))
 
             // ── Chart Table ───────────────────────────────
             when (val state = resultState) {
@@ -269,12 +282,22 @@ fun ChartScreen(
                 is GameViewModel.ResultState.Error -> {
                     Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                         Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                            Text(state.message, color = Color.White, fontSize = 15.sp,
-                                textAlign = TextAlign.Center)
+                            Text(
+                                state.message,
+                                color     = Color.White,
+                                fontSize  = 15.sp,
+                                textAlign = TextAlign.Center
+                            )
                             Spacer(Modifier.height(12.dp))
-                            Button(
-                                onClick = { gameViewModel.getresult(token) },
-                                colors  = ButtonDefaults.buttonColors(containerColor = YellowMain)
+                            // ✅ Retry also passes month/year
+                            Box(
+                                modifier = Modifier
+                                    .clip(RoundedCornerShape(10.dp))
+                                    .background(Color(0xFFE6B800))
+                                    .clickable {
+                                        gameViewModel.getresult(token, monthNumber, selectedYear)
+                                    }
+                                    .padding(horizontal = 24.dp, vertical = 10.dp)
                             ) {
                                 Text("Retry", color = Color.Black, fontWeight = FontWeight.Bold)
                             }
@@ -283,7 +306,8 @@ fun ChartScreen(
                 }
 
                 is GameViewModel.ResultState.Success -> {
-                    if (filteredDates.isEmpty()) {
+                    // ✅ Use dates directly from API — already filtered by month/year
+                    if (dates.isEmpty()) {
                         Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                             Text(
                                 "No data for $selectedMonth $selectedYear",
@@ -296,116 +320,96 @@ fun ChartScreen(
 
                         val hScroll = rememberScrollState()
 
-                        Card(
-                            modifier  = Modifier.fillMaxWidth(),
-                            shape     = RoundedCornerShape(12.dp),
-                            colors    = CardDefaults.cardColors(containerColor = Color.White),
-                            elevation = CardDefaults.cardElevation(4.dp)
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clip(RoundedCornerShape(8.dp))
+                                .background(Color.White)
+                                .border(1.dp, Color(0xFFCCCCCC), RoundedCornerShape(8.dp))
                         ) {
                             Column {
 
-                                // ── Table Title ──────────────────────
+                                // Yellow Title Bar
                                 Box(
                                     modifier = Modifier
                                         .fillMaxWidth()
-                                        .background(YellowMain)
+                                        .background(Color(0xFFFFE600))
                                         .padding(vertical = 10.dp),
                                     contentAlignment = Alignment.Center
                                 ) {
                                     Text(
-                                        "Chart — $selectedMonth $selectedYear",
+                                        "Chart for $selectedMonth $selectedYear",
                                         fontWeight = FontWeight.Bold,
-                                        fontSize   = 14.sp,
+                                        fontSize   = 15.sp,
                                         color      = Color.Black
                                     )
                                 }
 
-                                // ── Sticky Header + Scrollable Rows ──
-                                Column {
-
-                                    // Header (scrolls horizontally WITH rows via shared hScroll)
-                                    Row(
-                                        modifier = Modifier
-                                            .horizontalScroll(hScroll)
-                                            .background(HeaderBg)
-                                            .padding(vertical = 10.dp)
-                                    ) {
-                                        // Date header
+                                // Header Row
+                                Row(
+                                    modifier = Modifier
+                                        .horizontalScroll(hScroll)
+                                        .background(Color.White)
+                                ) {
+                                    ChartCell(
+                                        text       = "Date",
+                                        width      = DATE_COL_W,
+                                        fontWeight = FontWeight.Bold,
+                                        color      = Color.Black,
+                                        fontSize   = 12,
+                                        showBorder = true
+                                    )
+                                    gameNames.forEach { game ->
                                         ChartCell(
-                                            text       = "Date",
-                                            width      = DATE_COL_W,
+                                            text       = game.uppercase(),
+                                            width      = CITY_COL_W,
                                             fontWeight = FontWeight.Bold,
                                             color      = Color.Black,
-                                            fontSize   = 12
+                                            fontSize   = 11,
+                                            showBorder = true
                                         )
-                                        // City headers
-                                        cityNames.forEach { city ->
-                                            ChartCell(
-                                                text       = city.uppercase(),
-                                                width      = CITY_COL_W,
-                                                fontWeight = FontWeight.Bold,
-                                                color      = Color(0xFF333333),
-                                                fontSize   = 11
-                                            )
-                                        }
                                     }
+                                }
 
-                                    HorizontalDivider(thickness = 1.dp, color = Color.LightGray)
+                                // ✅ Data Rows — uses dates from API directly
+                                LazyColumn(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .heightIn(max = 520.dp)
+                                ) {
+                                    itemsIndexed(dates) { _, dateGroup ->
 
-                                    // Data rows — LazyColumn for performance
-                                    LazyColumn(
-                                        modifier = Modifier
-                                            .fillMaxWidth()
-                                            .heightIn(max = 520.dp)
-                                    ) {
-                                        itemsIndexed(filteredDates) { rowIndex, dateGroup ->
+                                        val dayLabel = extractDay(dateGroup.date)
 
-                                            // ── Day number extraction ────────
-                                            val dayLabel = extractDay(dateGroup.date)
+                                        Row(
+                                            modifier = Modifier
+                                                .horizontalScroll(hScroll)
+                                                .background(Color.White),
+                                            verticalAlignment = Alignment.CenterVertically
+                                        ) {
+                                            ChartCell(
+                                                text       = dayLabel,
+                                                width      = DATE_COL_W,
+                                                fontWeight = FontWeight.Normal,
+                                                color      = Color.Black,
+                                                fontSize   = 13,
+                                                showBorder = true
+                                            )
 
-                                            Row(
-                                                modifier = Modifier
-                                                    .horizontalScroll(hScroll)
-                                                    .background(
-                                                        if (rowIndex % 2 == 0) Color.White
-                                                        else AltRowBg
-                                                    )
-                                                    .padding(vertical = 8.dp),
-                                                verticalAlignment = Alignment.CenterVertically
-                                            ) {
-                                                // Day cell
-                                                ChartCell(
-                                                    text       = dayLabel,
-                                                    width      = DATE_COL_W,
-                                                    fontWeight = FontWeight.Bold,
-                                                    color      = Color(0xFF1A1A1A),
-                                                    fontSize   = 13,
-                                                    bgColor    = Color(0xFFFFF9C4)   // light yellow highlight
-                                                )
-
-                                                // Result per city
-                                                cityNames.forEach { cityName ->
-                                                    val gameResult = dateGroup.games.find {
-                                                        it.city_name.equals(cityName, ignoreCase = true)
-                                                    }
-                                                    val answer    = gameResult?.correct_answer?.trim()
-                                                        .takeIf { !it.isNullOrBlank() } ?: "-"
-                                                    val isPending = answer == "-"
-
-                                                    ChartCell(
-                                                        text       = answer,
-                                                        width      = CITY_COL_W,
-                                                        fontWeight = if (!isPending) FontWeight.Bold else FontWeight.Normal,
-                                                        color      = if (!isPending) Color(0xFF1A1A1A) else Color(0xFFBBBBBB),
-                                                        fontSize   = 13
-                                                    )
+                                            gameNames.forEach { gameName ->
+                                                val gameResult = dateGroup.games.find {
+                                                    it.game_name.equals(gameName, ignoreCase = true)
                                                 }
-                                            }
+                                                val answer = gameResult?.correct_answer
+                                                    ?.takeIf { it.isNotBlank() } ?: "xx"
 
-                                            if (rowIndex < filteredDates.size - 1) {
-                                                HorizontalDivider(
-                                                    thickness = 0.5.dp,
-                                                    color     = Color(0xFFEEEEEE)
+                                                ChartCell(
+                                                    text       = answer,
+                                                    width      = CITY_COL_W,
+                                                    fontWeight = FontWeight.Normal,
+                                                    color      = if (answer != "xx") Color.Black else Color(0xFFAAAAAA),
+                                                    fontSize   = 13,
+                                                    showBorder = true
                                                 )
                                             }
                                         }
@@ -422,7 +426,7 @@ fun ChartScreen(
     }
 }
 
-// ── Reusable Table Cell ────────────────────────────────────
+// ── Reusable Table Cell ──────────────────────────────────────
 @Composable
 private fun ChartCell(
     text       : String,
@@ -430,13 +434,18 @@ private fun ChartCell(
     fontWeight : FontWeight = FontWeight.Normal,
     color      : Color      = Color.Black,
     fontSize   : Int        = 12,
-    bgColor    : Color      = Color.Transparent
+    bgColor    : Color      = Color.Transparent,
+    showBorder : Boolean    = false
 ) {
     Box(
         modifier = Modifier
             .width(width)
+            .then(
+                if (showBorder) Modifier.border(0.5.dp, Color(0xFFAAAAAA))
+                else Modifier
+            )
             .background(bgColor)
-            .padding(horizontal = 4.dp),
+            .padding(vertical = 6.dp, horizontal = 4.dp),
         contentAlignment = Alignment.Center
     ) {
         Text(

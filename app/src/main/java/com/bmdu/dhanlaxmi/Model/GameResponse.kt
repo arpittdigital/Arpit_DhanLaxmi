@@ -6,13 +6,18 @@ data class GameResponse(
 )
 
 data class GameData(
-    val id: Int,
-    val game_name: String? = "",
-    val status: String? = "",
-    val result_time: String? = "",
-    val close_time: String? = "",
-    val play_next_day: String? = "",
-    val play_days: List<String>? = emptyList()
+    val id: Int?,
+    val game_name: String?,
+    val status: String?,
+    val result_time: String?,
+    val open_time: String?,
+    val close_time: String?,
+    val play_next_day: String?,
+    val play_days: List<String>?,
+    val number: String?,          // the declared result number
+    val result_status: String?,   // "NEW", "OLD", or null/empty
+    val andar: String?,
+    val bahar: String?
 )
 data class PlayRequest(
     val play_type: String,
@@ -42,6 +47,8 @@ data class PlayData(
 
 data class ResultResponse(
     val success: Boolean,
+    val month: String? = null,
+    val year: String? = null,
     val data: List<ResultDate>
 )
 
@@ -51,8 +58,8 @@ data class ResultDate(
 )
 
 data class GameResult(
-    val city_name: String,
-    val correct_answer: String
+    val game_name: String,
+    val correct_answer: String?
 )
 
 data class playAndar(

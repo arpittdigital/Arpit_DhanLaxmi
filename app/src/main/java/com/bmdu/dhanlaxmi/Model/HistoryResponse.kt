@@ -4,7 +4,21 @@ import com.google.gson.annotations.SerializedName
 
 data class HistoryResponse(
     val success: Boolean,
-    val data: List<HistoryData>
+    val data: List<HistoryItem>
+)
+
+data class HistoryItem(
+    val amount: Int,
+    val date: String,           // "24-02-2026 05:36"
+    val game: HistoryGame
+)
+
+data class HistoryGame(
+    val game_id: Int,
+    val game_name: String,
+    val play_type: String,      // "jodi", "single", etc.
+    val number: String,
+    val status: String          // "pending", "win", "loss"
 )
 
 data class HistoryData(

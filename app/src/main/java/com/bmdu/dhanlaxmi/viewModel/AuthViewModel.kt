@@ -35,7 +35,7 @@ class AuthViewModel(application: Application) : AndroidViewModel(application) {
         data class Error(val message: String) : AuthState()
         data class Success(val message: String) : AuthState()
     }
-    // ✅ Signup
+    // Signup
     fun signup(name: String, mobile: String, password: String) {
         Log.d(TAG, "─────────────────────────────────")
         Log.d(TAG, "signup() → API CALL START")
@@ -62,37 +62,37 @@ class AuthViewModel(application: Application) : AndroidViewModel(application) {
                     val userData = response.body()!!.data
                     val prefs = appContext.getSharedPreferences("auth_prefs", android.content.Context.MODE_PRIVATE)
 
-                    // ✅ Clear old token and save new user's data as fallback for HomeScreen
+                    // Clear old token and save new user's data as fallback for HomeScreen
                     prefs.edit()
                         .remove("auth_token")
                         .putString("signup_name", userData?.name ?: "")
                         .putString("signup_phone", userData?.phone ?: "")
                         .apply()
 
-                    // ✅ Save token if signup response includes one
+                    // Save token if signup response includes one
                     val token = userData?.token
                     if (!token.isNullOrBlank()) {
                         prefs.edit().putString("auth_token", token).apply()
-                        Log.d(TAG, "signup() → ✅ Token Saved: $token")
+                        Log.d(TAG, "signup() → Token Saved: $token")
                     }
 
                     val successMsg = response.body()!!.errors ?: "Signup successful"
-                    Log.d(TAG, "signup() → ✅ SUCCESS: $successMsg")
+                    Log.d(TAG, "signup() → SUCCESS: $successMsg")
                     _authState.value = AuthState.Success(successMsg)
 
                 } else {
                     val errorBody = response.errorBody()?.string()
-                    Log.e(TAG, "signup() → ❌ FAILED: HTTP ${response.code()} | ErrorBody: $errorBody")
+                    Log.e(TAG, "signup() → FAILED: HTTP ${response.code()} | ErrorBody: $errorBody")
                     _authState.value = AuthState.Error("Signup failed: ${response.code()}")
                 }
             } catch (e: Exception) {
-                Log.e(TAG, "signup() → ❌ EXCEPTION: ${e.localizedMessage}", e)
+                Log.e(TAG, "signup() → EXCEPTION: ${e.localizedMessage}", e)
                 _authState.value = AuthState.Error(e.localizedMessage ?: "Something went wrong")
             }
         }
     }
 
-    // ✅ Login — context removed, uses appContext internally
+    // Login — context removed, uses appContext internally
     fun login(mobile: String, password: String) {
         Log.d(TAG, "─────────────────────────────────")
         Log.d(TAG, "login() → API CALL START")
@@ -107,26 +107,26 @@ class AuthViewModel(application: Application) : AndroidViewModel(application) {
                     val prefs = appContext.getSharedPreferences("auth_prefs", android.content.Context.MODE_PRIVATE)
 
                     prefs.edit()
-                        .remove("auth_token")       // ✅ clear old token
-                        .remove("signup_name")      // ✅ clear signup fallback
-                        .remove("signup_phone")     // ✅ clear signup fallback
+                        .remove("auth_token")       //  clear old token
+                        .remove("signup_name")      // clear signup fallback
+                        .remove("signup_phone")     // clear signup fallback
                         .putString("auth_token", token)
                         .apply()
 
-                    Log.d(TAG, "login() → ✅ Token Saved: $token")
+                    Log.d(TAG, "login() → Token Saved: $token")
                     _authState.value = AuthState.Success(response.body()!!.message)
                 } else {
-                    Log.e(TAG, "login() → ❌ FAILED: HTTP ${response.code()}")
+                    Log.e(TAG, "login() → FAILED: HTTP ${response.code()}")
                     _authState.value = AuthState.Error("Invalid mobile number or password")
                 }
             } catch (e: Exception) {
-                Log.e(TAG, "login() → ❌ EXCEPTION: ${e.localizedMessage}", e)
+                Log.e(TAG, "login() → EXCEPTION: ${e.localizedMessage}", e)
                 _authState.value = AuthState.Error(e.localizedMessage ?: "Something went wrong")
             }
         }
     }
 
-    // ✅ Forgot Password
+    // Forgot Password
     fun forgotPassword(mobile: String) {
         Log.d(TAG, "─────────────────────────────────")
         Log.d(TAG, "forgotPassword() → API CALL START")

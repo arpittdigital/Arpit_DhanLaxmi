@@ -16,13 +16,12 @@ import java.util.concurrent.TimeUnit
 
 object RetrofitClient {
 
-    // ✅ BASE_URL
+    // BASE_URL
     private const val BASE_URL = "http://65.0.122.72"
 
     private val gson = GsonBuilder().setLenient().create()
 
     // ── FIX 1: Accept: application/json header — Laravel ko JSON mode mein karo
-    // Bina is header ke Laravel HTML return karta hai (admin login page)
     private val acceptJsonInterceptor = Interceptor { chain ->
         val request = chain.request().newBuilder()
             .addHeader("Accept", "application/json")       // ← KEY FIX
@@ -48,7 +47,7 @@ object RetrofitClient {
     }
 
     private val okHttpClient = OkHttpClient.Builder()
-        .addInterceptor(acceptJsonInterceptor)             // ← pehle ye
+        .addInterceptor(acceptJsonInterceptor)
         .addInterceptor(HttpLoggingInterceptor().apply {
             level = HttpLoggingInterceptor.Level.BODY
         })

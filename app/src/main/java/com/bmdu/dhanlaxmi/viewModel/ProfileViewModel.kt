@@ -60,7 +60,7 @@ class ProfileViewModel : ViewModel() {
                     _profileState.value = ProfileState.Success(response.body()!!)
                 } else {
                     val errorBody = response.errorBody()?.string() ?: "No error body"
-                    Log.e(TAG, "fetchProfile: ❌ Error → code=${response.code()}, body=$errorBody")
+                    Log.e(TAG, "fetchProfile:  Error → code=${response.code()}, body=$errorBody")
                     _profileState.value = ProfileState.Error(
                         when (response.code()) {
                             401  -> "Session expired. Please login again."
@@ -71,7 +71,7 @@ class ProfileViewModel : ViewModel() {
                     )
                 }
             } catch (e: Exception) {
-                Log.e(TAG, "fetchProfile: ❌ Exception → ${e.javaClass.simpleName}: ${e.message}", e)
+                Log.e(TAG, "fetchProfile:  Exception → ${e.javaClass.simpleName}: ${e.message}", e)
                 _profileState.value = ProfileState.Error(
                     e.localizedMessage ?: "Network error. Check your internet connection."
                 )
@@ -99,11 +99,11 @@ class ProfileViewModel : ViewModel() {
 
                 if (response.isSuccessful && response.body() != null) {
                     val items = response.body()!!.data ?: emptyList()
-                    Log.d(TAG, "fetchNotifications: ✅ Got ${items.size} notifications")
+                    Log.d(TAG, "fetchNotifications: Got ${items.size} notifications")
                     _notificationState.value = NotificationState.Success(items)
                 } else {
                     val errorBody = response.errorBody()?.string() ?: "No error body"
-                    Log.e(TAG, "fetchNotifications: ❌ code=${response.code()}, body=$errorBody")
+                    Log.e(TAG, "fetchNotifications:  code=${response.code()}, body=$errorBody")
                     _notificationState.value = NotificationState.Error(
                         when (response.code()) {
                             401  -> "Session expired. Please login again."
@@ -113,7 +113,7 @@ class ProfileViewModel : ViewModel() {
                     )
                 }
             } catch (e: Exception) {
-                Log.e(TAG, "fetchNotifications: ❌ Exception → ${e.localizedMessage}", e)
+                Log.e(TAG, "fetchNotifications:  Exception → ${e.localizedMessage}", e)
                 _notificationState.value = NotificationState.Error(
                     e.localizedMessage ?: "Network error. Check your internet connection."
                 )

@@ -59,7 +59,7 @@ fun ResultScreen(
                 }
             },
             colors = TopAppBarDefaults.topAppBarColors(
-                containerColor = Color(0xFFF3EE06),
+                containerColor = Color(0xFFC4BE01),
                 titleContentColor = Color.Black,
                 navigationIconContentColor = Color.Black
             )
@@ -80,7 +80,7 @@ fun ResultScreen(
                         Text(state.message, color = Color.Gray, fontSize = 16.sp)
                         Spacer(Modifier.height(12.dp))
                         Button(
-                            onClick = { gameViewModel.getresult(token) },
+                            onClick = { gameViewModel.getresult(token , null, null) },
                             colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFE53935))
                         ) {
                             Text("Retry", color = Color.White)
@@ -137,9 +137,9 @@ fun ResultScreen(
 @Composable
 fun ResultRow(game: GameResult) {
     // correct_answer format assume: "39-65" (open-close) ya single "39"
-    val parts = game.correct_answer.split("-")
-    val openNum  = parts.getOrNull(0)?.trim() ?: "XX"
-    val closeNum = parts.getOrNull(1)?.trim() ?: "XX"
+    val parts = game.correct_answer?.split("-")
+    val openNum  = parts?.getOrNull(0)?.trim() ?: "XX"
+    val closeNum = parts?.getOrNull(1)?.trim() ?: "XX"
 
     // Highlight agar current time ke aas paas ho (optional — abhi static)
     val isHighlighted = false
@@ -154,7 +154,7 @@ fun ResultRow(game: GameResult) {
         // Left: City name + time
         Column(modifier = Modifier.weight(1f)) {
             Text(
-                text = game.city_name.uppercase(),
+                text = game.game_name?.uppercase() ?: "",
                 fontSize = 16.sp,
                 fontWeight = FontWeight.Bold,
                 color = Color(0xFF1A1A1A)

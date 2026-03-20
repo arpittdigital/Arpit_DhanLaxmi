@@ -26,6 +26,9 @@ class GameViewModel : ViewModel() {
     private val _gamestate = MutableStateFlow<GameState>(GameState.Loading)
     val gamestate: StateFlow<GameState> = _gamestate
 
+    private val _balance = MutableStateFlow(0)
+    val balance: StateFlow<Int> = _balance
+
     sealed class GameState {
         object Loading : GameState()
         data class Error(val message: String) : GameState()
@@ -95,18 +98,19 @@ class GameViewModel : ViewModel() {
 
                     // API "status: true" check
                     if (body.status) {
+                        _balance.value = body.balance
                         _playState.value = PlayState.Success(
                             data = body.play
                         )
                         Log.d(TAG, "playGame: ✅ ${body.message}")
                     } else {
-                        // HTTP 200 aaya lekin status false
+
                         _playState.value = PlayState.Error(body.message)
-                        Log.e(TAG, "playGame: ❌ API returned status=false: ${body.message}")
+                        Log.e(TAG, "playGame:  API returned status=false: ${body.message}")
                     }
                 } else {
                     val err = response.errorBody()?.string() ?: "No error body"
-                    Log.e(TAG, "playGame: ❌ code=${response.code()}, body=$err")
+                    Log.e(TAG, "playGame:  code=${response.code()}, body=$err")
                     _playState.value = PlayState.Error("Failed to place bid. Please try again.")
                 }
             } catch (e: Exception) {
@@ -138,20 +142,21 @@ class GameViewModel : ViewModel() {
                 if (response.isSuccessful && response.body() != null) {
                     val body = response.body()!!
                     if (body.status){
+                        _balance.value = body.balance
                         _playState.value = PlayState.Success(
                             data = body.bahardata
                         )
 
                     }
                     else {
-                        // HTTP 200 aaya lekin status false
+
                         _playState.value = PlayState.Error(body.message)
-                        Log.e(TAG, "playGame: ❌ API returned status=false: ${body.message}")
+                        Log.e(TAG, "playGame: API returned status=false: ${body.message}")
                     }
                 }
                 else {
                     val err = response.errorBody()?.string() ?: "No error body"
-                    Log.e(TAG, "playGame: ❌ code=${response.code()}, body=$err")
+                    Log.e(TAG, "playGame: code=${response.code()}, body=$err")
                     _playState.value = PlayState.Error("Failed to place bid. Please try again.")
                 }
 
@@ -182,13 +187,14 @@ class GameViewModel : ViewModel() {
                 if (response.isSuccessful && response.body() != null) {
                     val body = response.body()!!
                     if (body.status){
+                        _balance.value = body.balance
                         _playState.value = PlayState.Success(
                             data = body.andardata
                         )
 
                     }
                     else {
-                        // HTTP 200 aaya lekin status false
+
                         _playState.value = PlayState.Error(body.message)
                         Log.e(TAG, "playGame: ❌ API returned status=false: ${body.message}")
                     }
@@ -218,29 +224,33 @@ class GameViewModel : ViewModel() {
         data class Error(val message: String) : ResultState()
     }
 
-    fun getresult(token: String) {
+    fun getresult(token: String, month: String? = null, year: String? = null) {
         viewModelScope.launch {
+            if (token.isBlank() || token == "Bearer ") {
+                _resultState.value = ResultState.Error("Not logged in. Please login again.")
+                return@launch
+            }
             _resultState.value = ResultState.Loading
             try {
-                Log.d(TAG, "getresult → fetching results")
-                val response = RetrofitClient.instance.getResult(token)
+                val response = if (month != null && year != null) {
+                    RetrofitClient.instance.getChartFilter(token, month, year)
+                } else {
+                    RetrofitClient.instance.getResult(token)
+                }
                 if (response.isSuccessful && response.body() != null) {
                     val body = response.body()!!
                     if (body.success) {
                         _resultState.value = ResultState.Success(body.data)
-                        Log.d(TAG, "getresult: ✅ loaded")
                     } else {
                         _resultState.value = ResultState.Error("No results found")
                     }
                 } else {
                     val err = response.errorBody()?.string() ?: "Unknown error"
-                    Log.e(TAG, "getresult: ❌ code=${response.code()}, body=$err")
-                    _resultState.value = ResultState.Error("Failed to load results")
+                    _resultState.value = ResultState.Error("HTTP ${response.code()}: $err")
                 }
             } catch (e: Exception) {
-                Log.e(TAG, "getresult → Exception: ${e.localizedMessage}", e)
-                _resultState.value = ResultState.Error(e.localizedMessage ?: "Unknown error")
+                _resultState.value = ResultState.Error("${e.javaClass.simpleName}: ${e.localizedMessage}")
             }
         }
     }
-}
+    }

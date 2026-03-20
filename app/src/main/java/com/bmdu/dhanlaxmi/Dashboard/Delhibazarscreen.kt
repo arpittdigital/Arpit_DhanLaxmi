@@ -27,6 +27,7 @@ import androidx.compose.ui.window.Dialog
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import android.util.Log
+import android.widget.Toast
 import androidx.compose.foundation.lazy.LazyColumn
 import com.bmdu.dhanlaxmi.viewModel.GameViewModel
 
@@ -203,74 +204,22 @@ fun DelhiBazarScreen(
                 .background(Color(0xFF111111))
                 .padding(horizontal = 16.dp, vertical = 4.dp)
         ) {
-            Text(
-                "Play Type: ${playTypes[selectedTab]}",
-                fontSize = 11.sp,
-                color = Color(0xFF888888)
-            )
+//            Text(
+//                "Play Type: ${playTypes[selectedTab]}",
+//                fontSize = 11.sp,
+//                color = Color(0xFF888888)
+//            )
         }
 
         when (selectedTab) {
             0 -> JodiScreen(
-                numbers, gameId, gameName,
-                gameViewModel
-            )
-            1 -> CrossingScreen(amountMap)
+                numbers = numbers,
+                gameId = gameId,
+                gameName = gameName,
+                gameViewModel = gameViewModel )   // no currentBalance needed
+
+                1 -> CrossingScreen(amountMap)
             2 -> CopyPasteScreen(amountMap)
-        }
-
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .background(bottomBg)
-                .padding(horizontal = 16.dp, vertical = 12.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    totalAmount.toString(),
-                    fontSize = 18.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = Color(0xFF1B1B1B)
-                )
-                Text("Total Amount", fontSize = 13.sp, color = Color.Gray)
-            }
-
-            Button(
-                onClick = {
-                    if (!isLoading && totalAmount > 0) {
-                        amountMap.forEach { (number, amtStr) ->
-                            val amt = amtStr.toIntOrNull() ?: 0
-                            if (amt > 0) {
-                                gameViewModel.playGame(
-                                    token = token,
-                                    gameId = gameId,
-                                    playType = playTypes[selectedTab],
-                                    number = number.toString().padStart(2, '0'),
-                                    amount = amt
-                                )
-                            }
-                        }
-                    }
-                },
-                enabled = !isLoading && totalAmount > 0,
-                modifier = Modifier.weight(1f).height(52.dp),
-                shape = RoundedCornerShape(10.dp),
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = redBtn,
-                    disabledContainerColor = Color(0xFFBDBDBD)
-                )
-            ) {
-                if (isLoading) {
-                    CircularProgressIndicator(
-                        modifier = Modifier.size(22.dp),
-                        color = Color.White,
-                        strokeWidth = 2.5.dp
-                    )
-                } else {
-                    Text("Place Bet", color = Color.White, fontSize = 16.sp, fontWeight = FontWeight.Bold)
-                }
-            }
         }
     }
 }
@@ -294,6 +243,8 @@ private fun JodiScreen(
     val jodiAmountMap = remember { mutableStateMapOf<Int, String>() }
     val andarAmountMap = remember { mutableStateMapOf<Int, String>() }
     val baharAmountMap = remember { mutableStateMapOf<Int, String>() }
+
+    val currentBalance by gameViewModel.balance.collectAsState()
 
     val totalAmount by derivedStateOf {
         val jodi = jodiAmountMap.values.sumOf { it.toIntOrNull() ?: 0 }
@@ -323,11 +274,13 @@ private fun JodiScreen(
                 showBidReceivedDialog = true
                 gameViewModel.resetPlayState()
             }
+
             is GameViewModel.PlayState.Error -> {
                 errorMessage = s.message
                 showErrorDialog = true
                 gameViewModel.resetPlayState()
             }
+
             else -> Unit
         }
     }
@@ -350,10 +303,20 @@ private fun JodiScreen(
                             .background(Color(0xFF4CAF50)),
                         contentAlignment = Alignment.Center
                     ) {
-                        Text("✓", fontSize = 36.sp, color = Color.White, fontWeight = FontWeight.Bold)
+                        Text(
+                            "✓",
+                            fontSize = 36.sp,
+                            color = Color.White,
+                            fontWeight = FontWeight.Bold
+                        )
                     }
                     Spacer(modifier = Modifier.height(16.dp))
-                    Text("Bid Received!", fontSize = 22.sp, fontWeight = FontWeight.Bold, color = Color(0xFF1B1B1B))
+                    Text(
+                        "Bid Received!",
+                        fontSize = 22.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = Color(0xFF1B1B1B)
+                    )
                     Spacer(modifier = Modifier.height(8.dp))
                     Text(
                         "Aapki bid successfully place ho gayi hai.\nResult baad mein declare hoga.",
@@ -371,7 +334,12 @@ private fun JodiScreen(
                         modifier = Modifier.fillMaxWidth().height(48.dp),
                         shape = RoundedCornerShape(12.dp)
                     ) {
-                        Text("OK", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 16.sp)
+                        Text(
+                            "OK",
+                            color = Color.White,
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 16.sp
+                        )
                     }
                 }
             }
@@ -394,104 +362,109 @@ private fun JodiScreen(
 
     Column(
         modifier = Modifier
-            .fillMaxWidth()
+            .fillMaxSize()
             .background(darkBg)
-            .verticalScroll(rememberScrollState())
     ) {
-        // ── JODI Numbers Grid (00-99) ──────────────────────────────────────
-        Text(
-            "Jodi Numbers (00 - 99)",
-            fontSize = 14.sp,
-            fontWeight = FontWeight.Bold,
-            color = Color.White,
-            modifier = Modifier.padding(start = 16.dp, top = 8.dp, bottom = 4.dp)
-        )
-
+        // ── Scrollable Content ──────────────────────────────────────────────
         Column(
             modifier = Modifier
+                .weight(1f)
                 .fillMaxWidth()
-                .padding(horizontal = 6.dp, vertical = 4.dp)
+                .verticalScroll(rememberScrollState())
         ) {
-            val rows = numbers.chunked(5)
-            rows.forEach { rowNumbers ->
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(4.dp)
-                ) {
-                    rowNumbers.forEach { number ->
-                        val displayNum = number.toString().padStart(2, '0')
-                        JodiInputCard(
-                            number = displayNum,
-                            value = jodiAmountMap[number] ?: "",
-                            onValueChange = { jodiAmountMap[number] = it },
-                            modifier = Modifier.weight(1f)
-                        )
-                    }
-                    if (rowNumbers.size < 5) {
-                        repeat(5 - rowNumbers.size) {
-                            Spacer(modifier = Modifier.weight(1f))
+            // ── JODI Numbers Grid (00-99) ──────────────────────────────────
+            Text(
+                "Jodi Numbers (00 - 99)",
+                fontSize = 14.sp,
+                fontWeight = FontWeight.Bold,
+                color = Color.White,
+                modifier = Modifier.padding(start = 16.dp, top = 8.dp, bottom = 4.dp)
+            )
+
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 6.dp, vertical = 4.dp)
+            ) {
+                val rows = numbers.chunked(5)
+                rows.forEach { rowNumbers ->
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(4.dp)
+                    ) {
+                        rowNumbers.forEach { number ->
+                            val displayNum = number.toString().padStart(2, '0')
+                            JodiInputCard(
+                                number = displayNum,
+                                value = jodiAmountMap[number] ?: "",
+                                onValueChange = { jodiAmountMap[number] = it },
+                                modifier = Modifier.weight(1f)
+                            )
+                        }
+                        if (rowNumbers.size < 5) {
+                            repeat(5 - rowNumbers.size) {
+                                Spacer(modifier = Modifier.weight(1f))
+                            }
                         }
                     }
+                    Spacer(modifier = Modifier.height(3.dp))
                 }
-                Spacer(modifier = Modifier.height(3.dp))
             }
+
+            // ── ANDAR Haruf (अंदर) ─────────────────────────────────────────
+            Text(
+                "Andar Haruf (अंदर)",
+                fontSize = 14.sp,
+                fontWeight = FontWeight.Bold,
+                color = Color.White,
+                modifier = Modifier.padding(start = 16.dp, top = 12.dp, bottom = 4.dp)
+            )
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 6.dp, vertical = 4.dp),
+                horizontalArrangement = Arrangement.spacedBy(4.dp)
+            ) {
+                (0..9).forEach { digit ->
+                    JodiInputCard(
+                        number = digit.toString(),
+                        value = andarAmountMap[digit] ?: "",
+                        onValueChange = { andarAmountMap[digit] = it },
+                        modifier = Modifier.weight(1f),
+                        isSingleDigit = true
+                    )
+                }
+            }
+
+            // ── BAHAR Haruf (बाहार) ────────────────────────────────────────
+            Text(
+                "Bahar Haruf (बाहार)",
+                fontSize = 14.sp,
+                fontWeight = FontWeight.Bold,
+                color = Color.White,
+                modifier = Modifier.padding(start = 16.dp, top = 12.dp, bottom = 4.dp)
+            )
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 6.dp, vertical = 4.dp),
+                horizontalArrangement = Arrangement.spacedBy(4.dp)
+            ) {
+                (0..9).forEach { digit ->
+                    JodiInputCard(
+                        number = digit.toString(),
+                        value = baharAmountMap[digit] ?: "",
+                        onValueChange = { baharAmountMap[digit] = it },
+                        modifier = Modifier.weight(1f),
+                        isSingleDigit = true
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.height(8.dp))
         }
 
-        // ── ANDAR Haruf (अंदर) ─────────────────────────────────────────────
-        Text(
-            "Andar Haruf (अंदर)",
-            fontSize = 14.sp,
-            fontWeight = FontWeight.Bold,
-            color = Color.White,
-            modifier = Modifier.padding(start = 16.dp, top = 12.dp, bottom = 4.dp)
-        )
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 6.dp, vertical = 4.dp),
-            horizontalArrangement = Arrangement.spacedBy(4.dp)
-        ) {
-            (0..9).forEach { digit ->
-                val displayNum = digit.toString()
-                JodiInputCard(
-                    number = displayNum,
-                    value = andarAmountMap[digit] ?: "",
-                    onValueChange = { andarAmountMap[digit] = it },
-                    modifier = Modifier.weight(1f),
-                    isSingleDigit = true
-                )
-            }
-        }
-
-        // ── BAHAR Haruf (बाहार) ────────────────────────────────────────────
-        Text(
-            "Bahar Haruf (बाहार)",
-            fontSize = 14.sp,
-            fontWeight = FontWeight.Bold,
-            color = Color.White,
-            modifier = Modifier.padding(start = 16.dp, top = 12.dp, bottom = 4.dp)
-        )
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 6.dp, vertical = 4.dp),
-            horizontalArrangement = Arrangement.spacedBy(4.dp)
-        ) {
-            (0..9).forEach { digit ->
-                val displayNum = digit.toString()
-                JodiInputCard(
-                    number = displayNum,
-                    value = baharAmountMap[digit] ?: "",
-                    onValueChange = { baharAmountMap[digit] = it },
-                    modifier = Modifier.weight(1f),
-                    isSingleDigit = true
-                )
-            }
-        }
-
-        Spacer(modifier = Modifier.height(8.dp))
-
-        // ── PLACE BET Button with all 3 API calls ──────────────────────────
+        // ── FIXED Place Bet Bottom Bar ──────────────────────────────────────
         Row(
             modifier = Modifier
                 .fillMaxWidth()
@@ -512,11 +485,17 @@ private fun JodiScreen(
             Button(
                 onClick = {
                     if (!isLoading && totalAmount > 0) {
-                        // ✅ JODI API CALLS
+
+                        // ← Balance check here
+                        if (totalAmount > currentBalance) {
+                            errorMessage = "Insufficient balance!"
+                            showErrorDialog = true
+                            return@Button
+                        }
+
                         jodiAmountMap.forEach { (number, amtStr) ->
                             val amt = amtStr.toIntOrNull() ?: 0
                             if (amt > 0) {
-                                Log.d("JodiAPI", "Calling playGame: jodi=$number, amount=$amt")
                                 gameViewModel.playGame(
                                     token = token,
                                     gameId = gameId,
@@ -526,12 +505,9 @@ private fun JodiScreen(
                                 )
                             }
                         }
-
-                        // ✅ ANDAR API CALLS
                         andarAmountMap.forEach { (number, amtStr) ->
                             val amt = amtStr.toIntOrNull() ?: 0
                             if (amt > 0) {
-                                Log.d("AndarAPI", "Calling andarPlayGame: andar=$number, amount=$amt")
                                 gameViewModel.andarPlayGame(
                                     token = token,
                                     gameId = gameId,
@@ -540,12 +516,9 @@ private fun JodiScreen(
                                 )
                             }
                         }
-
-                        // ✅ BAHAR API CALLS
                         baharAmountMap.forEach { (number, amtStr) ->
                             val amt = amtStr.toIntOrNull() ?: 0
                             if (amt > 0) {
-                                Log.d("BaharAPI", "Calling baharPlayGame: bahar=$number, amount=$amt")
                                 gameViewModel.baharPlayGame(
                                     token = token,
                                     gameId = gameId,
@@ -575,8 +548,9 @@ private fun JodiScreen(
                 }
             }
         }
+        }
     }
-}
+
 
 @Composable
 private fun JodiInputCard(

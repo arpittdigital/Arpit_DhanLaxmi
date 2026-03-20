@@ -76,7 +76,7 @@ fun LoginScreen(navController: NavController) {
     var passwordError by remember { mutableStateOf("") }
 
     val viewModel: AuthViewModel = viewModel()
-    // ✅ Renamed to avoid conflict
+    // Renamed to avoid conflict
     val authState by viewModel.authState.collectAsState()
     val context = LocalContext.current
 
