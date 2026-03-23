@@ -29,7 +29,11 @@ import androidx.navigation.NavController
 import android.util.Log
 import android.widget.Toast
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
+import androidx.compose.runtime.snapshots.SnapshotStateMap
+import androidx.core.graphics.component1
 import com.bmdu.dhanlaxmi.viewModel.GameViewModel
+import com.bmdu.dhanlaxmi.viewModel.ProfileViewModel
 
 @SuppressLint("UnrememberedMutableState")
 @OptIn(ExperimentalMaterial3Api::class)
@@ -38,20 +42,30 @@ fun DelhiBazarScreen(
     navController: NavController,
     gameId: Int,
     gameName: String,
-    gameViewModel: GameViewModel = viewModel()
+//    walletBalance: Int,
+    profileViewModel: ProfileViewModel,
+    gameViewModel: GameViewModel = viewModel(),
+
+//    onBidSuccess  : () -> Unit
 ) {
     val context = LocalContext.current
+    val profileState by profileViewModel.profileState.collectAsState()
+    val walletBalance = when (val s = profileState) {
+        is ProfileViewModel.ProfileState.Success ->
+            s.data.data?.wallet_amount
+                ?.toFloat()
+                ?.toInt() ?: 0   // "1700.00" → 1700.0f → 1700
+        else -> 0
+    }
 
     val token = remember {
         val prefs = context.getSharedPreferences("auth_prefs", Context.MODE_PRIVATE)
         val raw = prefs.getString("auth_token", "") ?: ""
-        val finalToken = if (raw.startsWith("Bearer ")) raw else "Bearer $raw"
-        Log.d("TOKEN_DEBUG", "Final token: '$finalToken'")
-        finalToken
+        if (raw.startsWith("Bearer ")) raw else "Bearer $raw"
     }
 
-    val tabLabels  = listOf("Jodi", "Crossing", "Copy Paste")
-    val playTypes  = listOf("jodi", "crossing", "copy_paste")
+    val tabLabels = listOf("Jodi", "Crossing", "Copy Paste")
+    val playTypes = listOf("jodi", "crossing", "copy_paste")
 
     var selectedTab by remember { mutableStateOf(0) }
 
@@ -60,6 +74,7 @@ fun DelhiBazarScreen(
     val totalAmount by derivedStateOf {
         amountMap.values.sumOf { it.toIntOrNull() ?: 0 }
     }
+
     val playState by gameViewModel.playState.collectAsState()
     val isLoading = playState is GameViewModel.PlayState.Loading
 
@@ -67,31 +82,32 @@ fun DelhiBazarScreen(
     var showErrorDialog by remember { mutableStateOf(false) }
     var errorMessage by remember { mutableStateOf("") }
 
-    LaunchedEffect(selectedTab) {
-        amountMap.clear()
-    }
+    LaunchedEffect(selectedTab) { amountMap.clear() }
 
     LaunchedEffect(playState) {
         when (val s = playState) {
             is GameViewModel.PlayState.Success -> {
-                showBidReceivedDialog = true
+                if (selectedTab != 0) {              // ← only show for Crossing/CopyPaste
+                    showBidReceivedDialog = true
+                }
+                profileViewModel.fetchProfile(token)
                 gameViewModel.resetPlayState()
             }
             is GameViewModel.PlayState.Error -> {
-                errorMessage = s.message
-                showErrorDialog = true
+                if (selectedTab != 0) {              // ← only show for Crossing/CopyPaste
+                    errorMessage = s.message
+                    showErrorDialog = true
+                }
                 gameViewModel.resetPlayState()
             }
             else -> Unit
         }
     }
 
-    val bgDark   = Color(0xFF1B1B1B)
-    val blueCard = Color(0xFF1565C0)
-    val inputBg  = Color(0xFFFFFFFF)
-    val redBtn   = Color(0xFFE53935)
-    val bottomBg = Color(0xFFFFFFFF)
+    val bgDark = Color(0xFF1B1B1B)
+    val redBtn = Color(0xFFE53935)
 
+    // ── Success Dialog ────────────────────────────────────
     if (showBidReceivedDialog) {
         Dialog(onDismissRequest = { showBidReceivedDialog = false }) {
             Box(
@@ -133,6 +149,7 @@ fun DelhiBazarScreen(
         }
     }
 
+    // ── Error Dialog ──────────────────────────────────────
     if (showErrorDialog) {
         AlertDialog(
             onDismissRequest = { showErrorDialog = false },
@@ -149,6 +166,7 @@ fun DelhiBazarScreen(
 
     Column(modifier = Modifier.fillMaxSize().background(bgDark)) {
 
+        // ── Top Bar ───────────────────────────────────────
         Row(
             modifier = Modifier
                 .fillMaxWidth()
@@ -167,10 +185,11 @@ fun DelhiBazarScreen(
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Icon(Icons.Default.Wallet, contentDescription = null, tint = Color.White, modifier = Modifier.size(20.dp))
                 Spacer(modifier = Modifier.width(4.dp))
-                Text("0", fontSize = 16.sp, color = Color.White, fontWeight = FontWeight.Medium)
+                Text("₹$walletBalance", fontSize = 16.sp, color = Color.White, fontWeight = FontWeight.Medium) // ← real balance
             }
         }
 
+        // ── Tabs ──────────────────────────────────────────
         Row(
             modifier = Modifier
                 .fillMaxWidth()
@@ -187,42 +206,90 @@ fun DelhiBazarScreen(
                         containerColor = if (selectedTab == index) redBtn else Color(0xFF333333)
                     )
                 ) {
-                    Text(
-                        label,
-                        color = Color.White,
-                        fontSize = 12.sp,
-                        fontWeight = FontWeight.Bold,
-                        maxLines = 1
-                    )
+                    Text(label, color = Color.White, fontSize = 12.sp, fontWeight = FontWeight.Bold, maxLines = 1)
                 }
             }
         }
 
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .background(Color(0xFF111111))
-                .padding(horizontal = 16.dp, vertical = 4.dp)
-        ) {
-//            Text(
-//                "Play Type: ${playTypes[selectedTab]}",
-//                fontSize = 11.sp,
-//                color = Color(0xFF888888)
-//            )
-        }
+        // ── Content + Bottom Bar ──────────────────────────
+        Column(modifier = Modifier.fillMaxSize()) {
 
-        when (selectedTab) {
-            0 -> JodiScreen(
-                numbers = numbers,
-                gameId = gameId,
-                gameName = gameName,
-                gameViewModel = gameViewModel )   // no currentBalance needed
+            // Content takes all remaining space
+            Box(modifier = Modifier.weight(1f)) {
+                when (selectedTab) {
+                    0 -> JodiScreen(
+                        numbers       = numbers,
+                        gameId        = gameId,
+                        gameName      = gameName,
+                        walletBalance = walletBalance,  // ← pass balance
+                        onBidSuccess  = { profileViewModel.fetchProfile(token) },
+                        gameViewModel = gameViewModel
+                    )
+                    1 -> CrossingScreen(amountMap)
+                    2 -> CopyPasteScreen(amountMap)
+                }
+            }
 
-                1 -> CrossingScreen(amountMap)
-            2 -> CopyPasteScreen(amountMap)
+            // ── Bottom Bar (only Crossing & CopyPaste) ────
+            if (selectedTab != 0) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .background(Color.White)
+                        .padding(horizontal = 16.dp, vertical = 12.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                            totalAmount.toString(),
+                            fontSize = 18.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = Color(0xFF1B1B1B)
+                        )
+                        Text("Total Amount", fontSize = 13.sp, color = Color.Gray)
+                    }
+
+                    Button(
+                        onClick = {
+                            if (!isLoading && totalAmount > 0) {
+                                amountMap.forEach { (number, amtStr) ->
+                                    val amt = amtStr.toIntOrNull() ?: 0
+                                    if (amt > 0) {
+                                        gameViewModel.playGame(
+                                            token    = token,
+                                            gameId   = gameId,
+                                            playType = playTypes[selectedTab],
+                                            number   = number.toString().padStart(2, '0'),
+                                            amount   = amt
+                                        )
+                                    }
+                                }
+                            }
+                        },
+                        enabled  = !isLoading && totalAmount > 0,
+                        modifier = Modifier.weight(1f).height(52.dp),
+                        shape    = RoundedCornerShape(10.dp),
+                        colors   = ButtonDefaults.buttonColors(
+                            containerColor         = redBtn,
+                            disabledContainerColor = Color(0xFFBDBDBD)
+                        )
+                    ) {
+                        if (isLoading) {
+                            CircularProgressIndicator(
+                                modifier    = Modifier.size(22.dp),
+                                color       = Color.White,
+                                strokeWidth = 2.5.dp
+                            )
+                        } else {
+                            Text("Place Bet", color = Color.White, fontSize = 16.sp, fontWeight = FontWeight.Bold)
+                        }
+                    }
+                }
+            }
         }
     }
 }
+
 
 // ════════════════════════════════════════════════════════════════════════════════
 // ══════════════════════ JODI SCREEN - WITH ANDAR & BAHAR ═══════════════════════
@@ -234,7 +301,9 @@ private fun JodiScreen(
     numbers: List<Int>,
     gameId: Int,
     gameName: String,
-    gameViewModel: GameViewModel = viewModel()
+    walletBalance: Int,
+    gameViewModel: GameViewModel = viewModel(),
+    onBidSuccess: () -> Unit
 ) {
     val darkBg = Color(0xFF1B1B1B)
     val redBtn = Color(0xFFE53935)
@@ -244,7 +313,8 @@ private fun JodiScreen(
     val andarAmountMap = remember { mutableStateMapOf<Int, String>() }
     val baharAmountMap = remember { mutableStateMapOf<Int, String>() }
 
-    val currentBalance by gameViewModel.balance.collectAsState()
+    val balanceFromGame by gameViewModel.balance.collectAsState()
+    val currentBalance = if (balanceFromGame > 0) balanceFromGame else walletBalance
 
     val totalAmount by derivedStateOf {
         val jodi = jodiAmountMap.values.sumOf { it.toIntOrNull() ?: 0 }
@@ -272,6 +342,7 @@ private fun JodiScreen(
         when (val s = playState) {
             is GameViewModel.PlayState.Success -> {
                 showBidReceivedDialog = true
+                onBidSuccess()
                 gameViewModel.resetPlayState()
             }
 
@@ -639,59 +710,48 @@ private fun CrossingScreen(amountMap: MutableMap<Int, String>) {
 
     Column(
         modifier = Modifier
-            .fillMaxWidth()
+            .fillMaxSize()
             .background(bgColor)
-            .padding(horizontal = 16.dp, vertical = 12.dp),
-        verticalArrangement = Arrangement.Top
+            .padding(horizontal = 16.dp, vertical = 12.dp)
     ) {
-        Text(
-            "Enter Digit",
-            fontSize = 14.sp,
-            color = textColor,
-            fontWeight = FontWeight.Medium,
-            modifier = Modifier.padding(bottom = 6.dp)
-        )
+
+        // ── Inputs ────────────────────────────────────────
+        Text("Enter Digit", fontSize = 14.sp, color = textColor,
+            fontWeight = FontWeight.Medium, modifier = Modifier.padding(bottom = 6.dp))
+
         OutlinedTextField(
             value = digitInput,
             onValueChange = { if (it.length <= 2 && it.all { ch -> ch.isDigit() }) digitInput = it },
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(48.dp)
-                .padding(bottom = 16.dp),
-            placeholder = { Text("00", color = Color(0xFF000000), fontSize = 16.sp) },
+            modifier = Modifier.fillMaxWidth().padding(bottom = 12.dp), // ← no height()
+            placeholder = { Text("00", color = Color.Gray) },
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
             singleLine = true,
             shape = RoundedCornerShape(8.dp),
-            textStyle = androidx.compose.ui.text.TextStyle(fontSize = 18.sp, fontWeight = FontWeight.Bold, color = Color.Black),
+            textStyle = androidx.compose.ui.text.TextStyle(
+                fontSize = 18.sp, fontWeight = FontWeight.Bold, color = Color.Black),
             colors = OutlinedTextFieldDefaults.colors(
-                unfocusedBorderColor = Color(0xFF000000),
-                focusedBorderColor = Color(0xFF000000),
+                unfocusedBorderColor = Color.Black,
+                focusedBorderColor = Color.Black,
                 cursorColor = Color.Black
             )
         )
 
-        Text(
-            "Amount",
-            fontSize = 14.sp,
-            color = textColor,
-            fontWeight = FontWeight.Medium,
-            modifier = Modifier.padding(bottom = 6.dp)
-        )
+        Text("Amount", fontSize = 14.sp, color = textColor,
+            fontWeight = FontWeight.Medium, modifier = Modifier.padding(bottom = 6.dp))
+
         OutlinedTextField(
             value = amountInput,
             onValueChange = { if (it.all { ch -> ch.isDigit() } && it.length <= 6) amountInput = it },
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(48.dp)
-                .padding(bottom = 20.dp),
-            placeholder = { Text("0", color = Color(0xFF000000), fontSize = 16.sp) },
+            modifier = Modifier.fillMaxWidth().padding(bottom = 12.dp), // ← no height()
+            placeholder = { Text("0", color = Color.Gray) },
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
             singleLine = true,
             shape = RoundedCornerShape(8.dp),
-            textStyle = androidx.compose.ui.text.TextStyle(fontSize = 18.sp, fontWeight = FontWeight.Bold, color = Color.Black),
+            textStyle = androidx.compose.ui.text.TextStyle(
+                fontSize = 18.sp, fontWeight = FontWeight.Bold, color = Color.Black),
             colors = OutlinedTextFieldDefaults.colors(
-                unfocusedBorderColor = Color(0xFF000000),
-                focusedBorderColor = Color(0xFF000000),
+                unfocusedBorderColor = Color.Black,
+                focusedBorderColor = Color.Black,
                 cursorColor = Color.Black
             )
         )
@@ -699,57 +759,69 @@ private fun CrossingScreen(amountMap: MutableMap<Int, String>) {
         Button(
             onClick = {
                 if (digitInput.isNotEmpty() && amountInput.isNotEmpty()) {
-                    val digit = digitInput.toIntOrNull() ?: 0
-                    amountMap[digit] = amountInput
+                    val digits = digitInput // e.g. "12"
+
+                    // Generate all combinations of each digit with every other digit
+                    digits.forEach { d1 ->
+                        digits.forEach { d2 ->
+                            val num = "$d1$d2".toIntOrNull() ?: 0
+                            amountMap[num] = amountInput
+                        }
+                    }
+
                     digitInput = ""
                     amountInput = ""
                 }
             },
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(48.dp)
-                .padding(bottom = 16.dp),
+            modifier = Modifier.fillMaxWidth().height(48.dp).padding(bottom = 4.dp),
             shape = RoundedCornerShape(8.dp),
             colors = ButtonDefaults.buttonColors(containerColor = yellowBtn)
         ) {
             Text("Add", color = Color.Black, fontSize = 14.sp, fontWeight = FontWeight.Bold)
         }
 
+        Spacer(modifier = Modifier.height(12.dp))
+
+        // ── List ──────────────────────────────────────────
         if (amountMap.isNotEmpty()) {
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
                     .background(yellowBtn)
-                    .padding(vertical = 8.dp),
-                horizontalArrangement = Arrangement.SpaceEvenly
+                    .padding(vertical = 8.dp)
             ) {
-                Text("Number", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = Color.Black, modifier = Modifier.weight(1f), textAlign = TextAlign.Center)
-                Text("Amount", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = Color.Black, modifier = Modifier.weight(1f), textAlign = TextAlign.Center)
-                Text("Action", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = Color.Black, modifier = Modifier.weight(1f), textAlign = TextAlign.Center)
+                Text("Number", fontSize = 12.sp, fontWeight = FontWeight.Bold,
+                    color = Color.Black, modifier = Modifier.weight(1f), textAlign = TextAlign.Center)
+                Text("Amount", fontSize = 12.sp, fontWeight = FontWeight.Bold,
+                    color = Color.Black, modifier = Modifier.weight(1f), textAlign = TextAlign.Center)
+                Text("Action", fontSize = 12.sp, fontWeight = FontWeight.Bold,
+                    color = Color.Black, modifier = Modifier.weight(1f), textAlign = TextAlign.Center)
             }
 
-            LazyColumn(modifier = Modifier.fillMaxWidth()) {
-                items(amountMap.size) { index ->
-                    val (number, amount) = amountMap.toList()[index]
+            // ← LazyColumn with weight takes remaining space
+            LazyColumn(modifier = Modifier.fillMaxWidth().weight(1f)) {
+                items(amountMap.toList()) { (number, amount) ->
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .background(if (index % 2 == 0) Color(0xFFF5F5F5) else Color.White)
-                            .padding(vertical = 8.dp),
+                            .background(if (amountMap.keys.indexOf(number) % 2 == 0)
+                                Color(0xFFF5F5F5) else Color.White)
+                            .padding(vertical = 10.dp),
                         horizontalArrangement = Arrangement.SpaceEvenly,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Text(number.toString().padStart(2, '0'), fontSize = 12.sp, color = textColor, modifier = Modifier.weight(1f), textAlign = TextAlign.Center)
-                        Text(amount, fontSize = 12.sp, color = textColor, modifier = Modifier.weight(1f), textAlign = TextAlign.Center)
+                        Text(number.toString().padStart(2, '0'), fontSize = 13.sp,
+                            color = textColor, modifier = Modifier.weight(1f),
+                            textAlign = TextAlign.Center, fontWeight = FontWeight.Bold)
+                        Text("₹$amount", fontSize = 13.sp, color = textColor,
+                            modifier = Modifier.weight(1f), textAlign = TextAlign.Center)
                         Button(
                             onClick = { amountMap.remove(number) },
-                            modifier = Modifier
-                                .weight(1f)
-                                .height(32.dp),
+                            modifier = Modifier.weight(1f).padding(horizontal = 8.dp).height(32.dp),
                             shape = RoundedCornerShape(4.dp),
                             colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFE53935))
                         ) {
-                            Text("Del", color = Color.White, fontSize = 10.sp)
+                            Text("Delete", color = Color.White, fontSize = 10.sp)
                         }
                     }
                 }
@@ -758,175 +830,179 @@ private fun CrossingScreen(amountMap: MutableMap<Int, String>) {
     }
 }
 
-// ════════════════════════════════════════════════════════════════════════════════
-// ══════════════════════ COPY PASTE SCREEN ══════════════════════════════════════
-// ════════════════════════════════════════════════════════════════════════════════
 
 @Composable
-private fun CopyPasteScreen(amountMap: MutableMap<Int, String>) {
+private fun CopyPasteScreen(amountMap: SnapshotStateMap<Int, String>) {
     val yellowBtn = Color(0xFFFDD835)
     val bgColor = Color(0xFFFFFFFF)
     val textColor = Color(0xFF1B1B1B)
+    val context = LocalContext.current
 
     var digitInput by remember { mutableStateOf("") }
     var amountInput by remember { mutableStateOf("") }
     var withPalti by remember { mutableStateOf(true) }
+    // Replace single amountMap with two separate maps
+    val paltiAmountMap = remember { mutableStateMapOf<Int, String>() }
+    val nonPaltiAmountMap = remember { mutableStateMapOf<Int, String>() }
+    val currentMap = if (withPalti) paltiAmountMap else nonPaltiAmountMap
+
+    fun syncToParent(isPalti: Boolean = withPalti) {
+        amountMap.clear()
+        amountMap.putAll(if (isPalti) paltiAmountMap else nonPaltiAmountMap)
+    }
 
     Column(
         modifier = Modifier
-            .fillMaxWidth()
+            .fillMaxSize()
             .background(bgColor)
-            .padding(horizontal = 16.dp, vertical = 12.dp),
-        verticalArrangement = Arrangement.Top
+            .padding(horizontal = 16.dp, vertical = 12.dp)
     ) {
 
-        Text(
-            "Enter Number",
-            fontSize = 14.sp,
-            color = textColor,
-            fontWeight = FontWeight.Medium,
-            modifier = Modifier.padding(bottom = 6.dp)
-        )
+        // ── Inputs ────────────────────────────────────────
+        Text("Enter Number", fontSize = 14.sp, color = textColor,
+            fontWeight = FontWeight.Medium, modifier = Modifier.padding(bottom = 6.dp))
+
         OutlinedTextField(
             value = digitInput,
             onValueChange = { if (it.length <= 2 && it.all { ch -> ch.isDigit() }) digitInput = it },
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(48.dp)
-                .padding(bottom = 16.dp),
-            placeholder = { Text("00", color = Color(0xFF000000), fontSize = 16.sp) },
+            modifier = Modifier.fillMaxWidth().padding(bottom = 12.dp), // ← no height()
+            placeholder = { Text("00", color = Color.Gray) },
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
             singleLine = true,
             shape = RoundedCornerShape(8.dp),
-            textStyle = androidx.compose.ui.text.TextStyle(fontSize = 18.sp, fontWeight = FontWeight.Bold, color = Color.Black),
+            textStyle = androidx.compose.ui.text.TextStyle(
+                fontSize = 18.sp, fontWeight = FontWeight.Bold, color = Color.Black),
             colors = OutlinedTextFieldDefaults.colors(
-                unfocusedBorderColor = Color(0xFF050505),
-                focusedBorderColor = Color(0xFF030303),
+                unfocusedBorderColor = Color.Black,
+                focusedBorderColor = Color.Black,
                 cursorColor = Color.Black
             )
         )
 
-        Text(
-            "Amount",
-            fontSize = 14.sp,
-            color = textColor,
-            fontWeight = FontWeight.Medium,
-            modifier = Modifier.padding(bottom = 6.dp)
-        )
+        Text("Amount", fontSize = 14.sp, color = textColor,
+            fontWeight = FontWeight.Medium, modifier = Modifier.padding(bottom = 6.dp))
+
         OutlinedTextField(
             value = amountInput,
             onValueChange = { if (it.all { ch -> ch.isDigit() } && it.length <= 6) amountInput = it },
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(48.dp)
-                .padding(bottom = 16.dp),
-            placeholder = { Text("0", color = Color(0xFF000000), fontSize = 16.sp) },
+            modifier = Modifier.fillMaxWidth().padding(bottom = 12.dp), // ← no height()
+            placeholder = { Text("0", color = Color.Gray) },
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
             singleLine = true,
             shape = RoundedCornerShape(8.dp),
-            textStyle = androidx.compose.ui.text.TextStyle(fontSize = 18.sp, fontWeight = FontWeight.Bold, color = Color.Black),
+            textStyle = androidx.compose.ui.text.TextStyle(
+                fontSize = 18.sp, fontWeight = FontWeight.Bold, color = Color.Black),
             colors = OutlinedTextFieldDefaults.colors(
-                unfocusedBorderColor = Color(0xFF000000),
-                focusedBorderColor = Color(0xFF000000),
+                unfocusedBorderColor = Color.Black,
+                focusedBorderColor = Color.Black,
                 cursorColor = Color.Black
             )
         )
 
+        // ── Palti Toggle ──────────────────────────────────
         Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(bottom = 16.dp),
+            modifier = Modifier.fillMaxWidth().padding(bottom = 12.dp),
             horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             Button(
-                onClick = { withPalti = true },
+                onClick = { withPalti = true; syncToParent(true) },
                 modifier = Modifier.weight(1f).height(44.dp),
                 shape = RoundedCornerShape(8.dp),
                 colors = ButtonDefaults.buttonColors(
-                    containerColor = if (withPalti) yellowBtn else Color(0xFFEEEEEE)
-                )
+                    containerColor = if (withPalti) yellowBtn else Color(0xFFEEEEEE))
             ) {
-                Text("✓ With Palti", color = if (withPalti) Color.Black else Color.Gray, fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                Text("✓ With Palti",
+                    color = if (withPalti) Color.Black else Color.Gray,
+                    fontSize = 12.sp, fontWeight = FontWeight.Bold)
             }
             Button(
-                onClick = { withPalti = false },
+                onClick = { withPalti = false; syncToParent(false) },
                 modifier = Modifier.weight(1f).height(44.dp),
                 shape = RoundedCornerShape(8.dp),
                 colors = ButtonDefaults.buttonColors(
-                    containerColor = if (!withPalti) yellowBtn else Color(0xFFEEEEEE)
-                )
+                    containerColor = if (!withPalti) yellowBtn else Color(0xFFEEEEEE))
             ) {
-                Text("✓ Without Palti", color = if (!withPalti) Color.Black else Color.Gray, fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                Text("✓ Without Palti",
+                    color = if (!withPalti) Color.Black else Color.Gray,
+                    fontSize = 12.sp, fontWeight = FontWeight.Bold)
             }
         }
 
         Button(
             onClick = {
-                if (digitInput.isNotEmpty() && amountInput.isNotEmpty()) {
-                    if (withPalti) {
-                        val d1 = digitInput[0].toString()
-                        val d2 = digitInput.last().toString()
-
-                        val combinations = listOf(
-                            (d1 + d1).toInt(),
-                            (d1 + d2).toInt(),
-                            (d2 + d1).toInt(),
-                            (d2 + d2).toInt()
-                        )
-
-                        combinations.forEach { num ->
-                            amountMap[num] = amountInput
+                when {
+                    digitInput.isEmpty() || amountInput.isEmpty() ->
+                        Toast.makeText(context, "Please enter number and amount", Toast.LENGTH_SHORT).show()
+                    digitInput.length < 2 ->
+                        Toast.makeText(context, "Please enter a 2-digit number", Toast.LENGTH_SHORT).show()
+                    else -> {
+                        if (withPalti) {
+                            val d1 = digitInput[0].toString()
+                            val d2 = digitInput[1].toString()
+                            val num1 = (d1 + d2).toInt()
+                            val num2 = (d2 + d1).toInt()
+                            paltiAmountMap[num1] = amountInput
+                            if (num2 != num1) paltiAmountMap[num2] = amountInput
+                        } else {
+                            val digit = digitInput.toIntOrNull() ?: 0
+                            nonPaltiAmountMap[digit] = amountInput
                         }
-                    } else {
-                        val digit = digitInput.toIntOrNull() ?: 0
-                        amountMap[digit] = amountInput
+                        syncToParent()  // ← sync to parent
+                        digitInput = ""
+                        amountInput = ""
                     }
-
-                    digitInput = ""
-                    amountInput = ""
                 }
             },
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(48.dp)
-                .padding(bottom = 16.dp),
+            modifier = Modifier.fillMaxWidth().height(48.dp),
             shape = RoundedCornerShape(8.dp),
             colors = ButtonDefaults.buttonColors(containerColor = yellowBtn)
         ) {
             Text("Add", color = Color.Black, fontSize = 14.sp, fontWeight = FontWeight.Bold)
         }
 
-        if (amountMap.isNotEmpty()) {
+        Spacer(modifier = Modifier.height(12.dp))
+
+        // ── List ──────────────────────────────────────────
+
+
+        if (currentMap.isNotEmpty()) {
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
                     .background(yellowBtn)
-                    .padding(vertical = 8.dp),
-                horizontalArrangement = Arrangement.SpaceEvenly
+                    .padding(vertical = 8.dp)
             ) {
-                Text("Number", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = Color.Black, modifier = Modifier.weight(1f), textAlign = TextAlign.Center)
-                Text("Amount", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = Color.Black, modifier = Modifier.weight(1f), textAlign = TextAlign.Center)
-                Text("Action", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = Color.Black, modifier = Modifier.weight(1f), textAlign = TextAlign.Center)
+                Text("Number", fontSize = 12.sp, fontWeight = FontWeight.Bold,
+                    color = Color.Black, modifier = Modifier.weight(1f), textAlign = TextAlign.Center)
+                Text("Amount", fontSize = 12.sp, fontWeight = FontWeight.Bold,
+                    color = Color.Black, modifier = Modifier.weight(1f), textAlign = TextAlign.Center)
+                Text("Action", fontSize = 12.sp, fontWeight = FontWeight.Bold,
+                    color = Color.Black, modifier = Modifier.weight(1f), textAlign = TextAlign.Center)
             }
 
-            LazyColumn(modifier = Modifier.fillMaxWidth()) {
-                items(amountMap.size) { index ->
-                    val (number, amount) = amountMap.toList()[index]
+            // ← weight(1f) so list takes remaining space
+            LazyColumn(modifier = Modifier.fillMaxWidth().weight(1f)) {
+                items(currentMap.toList()) { (number, amount) ->
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .background(if (index % 2 == 0) Color(0xFFF5F5F5) else Color.White)
-                            .padding(vertical = 8.dp),
+                            .background(if (currentMap.keys.indexOf(number) % 2 == 0)
+                                Color(0xFFF5F5F5) else Color.White)
+                            .padding(vertical = 10.dp),
                         horizontalArrangement = Arrangement.SpaceEvenly,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Text(number.toString().padStart(2, '0'), fontSize = 12.sp, color = Color(0xFF1B1B1B), modifier = Modifier.weight(1f), textAlign = TextAlign.Center)
-                        Text(amount, fontSize = 12.sp, color = Color(0xFF1B1B1B), modifier = Modifier.weight(1f), textAlign = TextAlign.Center)
+                        Text(number.toString().padStart(2, '0'), fontSize = 13.sp,
+                            color = textColor, modifier = Modifier.weight(1f),
+                            textAlign = TextAlign.Center, fontWeight = FontWeight.Bold)
+                        Text("₹$amount", fontSize = 13.sp, color = textColor,
+                            modifier = Modifier.weight(1f), textAlign = TextAlign.Center)
                         Button(
-                            onClick = { amountMap.remove(number) },
-                            modifier = Modifier
-                                .weight(1f)
-                                .height(32.dp),
+                            onClick = {
+                                currentMap.remove(number)
+                                syncToParent()
+                                      },
+                            modifier = Modifier.weight(1f).padding(horizontal = 8.dp).height(32.dp),
                             shape = RoundedCornerShape(4.dp),
                             colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFE53935))
                         ) {

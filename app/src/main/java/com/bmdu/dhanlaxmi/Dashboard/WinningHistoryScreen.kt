@@ -32,7 +32,7 @@ import com.bmdu.dhanlaxmi.viewModel.WinningHistoryViewModel
 @Composable
 fun WinningHistoryScreen(
     navController: NavController,
-    token: String,                                          // ← Pass from NavHost
+    token: String,
     viewModel: WinningHistoryViewModel = viewModel()
 ) {
     val winningList  by viewModel.winningList.collectAsState()

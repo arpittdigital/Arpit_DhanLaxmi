@@ -1,5 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-
-    <style name="Theme.DhanLaxmi" parent="android:Theme.Material.Light.NoActionBar" />
+    <style name="Theme.DhanLaxmi" parent="Theme.Material3.Light.NoActionBar">
+        <item name="android:statusBarColor">#00000000</item>
+        <item name="android:windowLightStatusBar">false</item>
+    </style>
 </resources>

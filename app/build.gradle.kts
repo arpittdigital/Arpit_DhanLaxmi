@@ -73,4 +73,6 @@ dependencies {
     implementation("com.squareup.okhttp3:logging-interceptor:4.12.0")
     implementation("com.google.zxing:core:3.5.2")
     implementation("com.google.accompanist:accompanist-swiperefresh:0.27.0")
+
+    implementation("com.google.android.material:material:1.9.0")
 }

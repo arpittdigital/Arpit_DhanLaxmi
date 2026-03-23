@@ -28,8 +28,8 @@ data class PlayRequest(
 data class PlayResponse(
     val status: Boolean,
     val message: String,
-    val play: PlayData,
-    val balance: Int
+    val plays   : List<PlayData>?,
+    val balance : String
 )
 
 data class PlayData(
@@ -67,11 +67,22 @@ data class playAndar(
     val amount: Int
 )
 
+data class AndarPlayData(
+    val user_id    : Int,
+    val game_id    : String,
+    val number     : String,   // ← String (safe for both)
+    val amount     : String,   // ← String (safe for both)
+    val status     : String,
+    val id         : Int,
+    val created_at : String,
+    val updated_at : String
+)
+
 data class playAndarResponse(
-    val status: Boolean,
-    val message: String,
-    val andardata: PlayData,
-    val balance: Int
+    val status   : Boolean,
+    val message  : String,
+    val data     : AndarPlayData?,  // ← "data" not "andardata", nullable
+    val balance  : String           // ← String not Int
 )
 
 
@@ -81,9 +92,9 @@ data class playBahar(
 )
 
 data class playBaharResponse(
-    val status: Boolean,
-    val message: String,
-    val bahardata: PlayData,
-    val balance: Int
+    val status   : Boolean,
+    val message  : String,
+    val data     : AndarPlayData?,  // ← same "data" key, reuse AndarPlayData
+    val balance  : String           // ← String not Int
 )
 

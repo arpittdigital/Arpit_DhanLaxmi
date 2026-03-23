@@ -39,7 +39,7 @@ fun formatHistoryDate(dateStr: String): String {
 }
 @Composable
 fun HistoryScreen(
-    token: String,              // ← String not NavHostController
+    token: String,
     onBack: () -> Unit = {},
     viewModel: HistoryViewModel = viewModel()
 ) {
@@ -141,14 +141,15 @@ fun HistoryScreen(
                             Text("📭", fontSize = 40.sp)
                             Spacer(Modifier.height(10.dp))
                             Text(
-                                text       = "No history found",
+                                text       = "No bids placed yet",
                                 color      = Color(0xFF4A6A4A),
                                 fontSize   = 16.sp,
                                 fontWeight = FontWeight.Bold
                             )
                         }
                     }
-                } else {
+                }
+                 else {
                     LazyColumn(
                         modifier            = Modifier.fillMaxSize(),
                         contentPadding      = PaddingValues(16.dp),

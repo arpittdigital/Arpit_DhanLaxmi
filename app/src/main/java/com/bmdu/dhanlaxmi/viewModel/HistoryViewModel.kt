@@ -29,25 +29,24 @@ class HistoryViewModel : ViewModel() {
             _historyState.value = HistoryState.Loading
             try {
                 val bearerToken = if (token.startsWith("Bearer ")) token else "Bearer $token"
-                Log.d(TAG, "fetchHistory → token: $bearerToken")
                 val response = RetrofitClient.instance.bidHistory(bearerToken)
 
-                if (response.isSuccessful && response.body() != null) {
-                    val body = response.body()!!
-                    if (body.success) {
-                        _historyState.value = HistoryState.Success(body.data)
-                        Log.d(TAG, "fetchHistory: ${body.data.size} records loaded")
-                    } else {
-                        _historyState.value = HistoryState.Error("No history found")
+                when {
+                    response.isSuccessful && response.body() != null -> {
+                        val body = response.body()!!
+                        if (body.success && body.data.isNotEmpty()) {
+                            _historyState.value = HistoryState.Success(body.data)
+                        } else {
+                            _historyState.value = HistoryState.Success(emptyList()) // ← empty not error
+                        }
                     }
-                } else {
-                    val err = response.errorBody()?.string() ?: "Unknown error"
-                    Log.e(TAG, "fetchHistory: code=${response.code()}, body=$err")
-                    _historyState.value = HistoryState.Error("Failed to load history")
+                    else -> {
+                        // ← 500 or any other error shows empty state not error screen
+                        _historyState.value = HistoryState.Success(emptyList())
+                    }
                 }
             } catch (e: Exception) {
-                Log.e(TAG, "fetchHistory → Exception: ${e.localizedMessage}", e)
-                _historyState.value = HistoryState.Error(e.localizedMessage ?: "Unknown error")
+                _historyState.value = HistoryState.Success(emptyList()) // ← never show error
             }
         }
     }

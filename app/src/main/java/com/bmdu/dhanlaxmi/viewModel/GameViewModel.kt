@@ -59,10 +59,10 @@ class GameViewModel : ViewModel() {
     val playState: StateFlow<PlayState> = _playState
 
     sealed class PlayState {
-        object Idle : PlayState()
+        object Idle    : PlayState()
         object Loading : PlayState()
-        data class Error(val message: String) : PlayState()
-        data class Success(val data: PlayData) : PlayState()
+        data class Error(val message: String)   : PlayState()
+        data class Success(val message: String) : PlayState()  // ← String not PlayData?
     }
 
     fun playGame(
@@ -98,11 +98,9 @@ class GameViewModel : ViewModel() {
 
                     // API "status: true" check
                     if (body.status) {
-                        _balance.value = body.balance
-                        _playState.value = PlayState.Success(
-                            data = body.play
-                        )
-                        Log.d(TAG, "playGame: ✅ ${body.message}")
+                        _balance.value = body.balance.toDoubleOrNull()?.toInt() ?: 0 // ← parse String
+                        _playState.value = PlayState.Success(body.message)
+                        Log.d(TAG, "playGame:  ${body.message}")
                     } else {
 
                         _playState.value = PlayState.Error(body.message)
@@ -141,12 +139,9 @@ class GameViewModel : ViewModel() {
 
                 if (response.isSuccessful && response.body() != null) {
                     val body = response.body()!!
-                    if (body.status){
-                        _balance.value = body.balance
-                        _playState.value = PlayState.Success(
-                            data = body.bahardata
-                        )
-
+                    if (body.status) {
+                        _balance.value = body.balance.toDoubleOrNull()?.toInt() ?: 0
+                        _playState.value = PlayState.Success(body.message)  // ← same
                     }
                     else {
 
@@ -187,21 +182,19 @@ class GameViewModel : ViewModel() {
                 if (response.isSuccessful && response.body() != null) {
                     val body = response.body()!!
                     if (body.status){
-                        _balance.value = body.balance
-                        _playState.value = PlayState.Success(
-                            data = body.andardata
-                        )
+                        _balance.value = body.balance.toDoubleOrNull()?.toInt() ?: 0
+                        _playState.value = PlayState.Success(body.message)
 
                     }
                     else {
 
                         _playState.value = PlayState.Error(body.message)
-                        Log.e(TAG, "playGame: ❌ API returned status=false: ${body.message}")
+                        Log.e(TAG, "playGame: API returned status=false: ${body.message}")
                     }
                 }
                 else {
                     val err = response.errorBody()?.string() ?: "No error body"
-                    Log.e(TAG, "playGame: ❌ code=${response.code()}, body=$err")
+                    Log.e(TAG, "playGame: code=${response.code()}, body=$err")
                     _playState.value = PlayState.Error("Failed to place bid. Please try again.")
                 }
 

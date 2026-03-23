@@ -37,6 +37,8 @@ import androidx.compose.ui.graphics.ImageBitmap
 import android.graphics.Bitmap
 import android.net.Uri
 import android.widget.Toast
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.browser.customtabs.CustomTabsIntent
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.clickable
@@ -184,6 +186,26 @@ fun QRPaymentScreen(
                 // ── Ready — show PAY NOW button ───────────
                 is PaymentViewModel.PaymentState.ReadyToPay -> {
 
+                    // ── UPI Launcher — returns user back automatically ──
+                    val upiLauncher = rememberLauncherForActivityResult(
+                        contract = ActivityResultContracts.StartActivityForResult()
+                    ) { result ->
+                        val response = result.data?.getStringExtra("response") ?: ""
+                        when {
+                            response.contains("SUCCESS", ignoreCase = true) ||
+                                    response.contains("PAID",    ignoreCase = true) -> {
+                                viewModel.startPolling(s.result.checkLink)
+                            }
+                            response.contains("FAILURE", ignoreCase = true) ||
+                                    response.contains("FAILED",  ignoreCase = true) -> {
+                                viewModel.startPolling(s.result.checkLink) // server is source of truth
+                            }
+                            else -> {
+                                // user cancelled or closed the app — do nothing
+                            }
+                        }
+                    }
+
                     Text("Pay ₹$amount", fontSize = 26.sp, fontWeight = FontWeight.Bold, color = Color(0xFFF3EE06))
                     Spacer(Modifier.height(8.dp))
                     Text("Choose payment method", fontSize = 13.sp, color = Color.White.copy(alpha = 0.8f))
@@ -193,7 +215,8 @@ fun QRPaymentScreen(
                     PaymentAppButton(
                         label = "Google Pay",
                         onClick = {
-                            openUpiApp(context, s.result.bhimLink)
+                            val intent = Intent(Intent.ACTION_VIEW, Uri.parse(s.result.bhimLink))
+                            upiLauncher.launch(intent)
                         }
                     )
                     Spacer(Modifier.height(10.dp))
@@ -203,7 +226,8 @@ fun QRPaymentScreen(
                         label = "PhonePe",
                         onClick = {
                             val phonepeLink = s.result.bhimLink.replace("upi://", "phonepe://")
-                            openUpiApp(context, phonepeLink)
+                            val intent = Intent(Intent.ACTION_VIEW, Uri.parse(phonepeLink))
+                            upiLauncher.launch(intent)
                         }
                     )
                     Spacer(Modifier.height(10.dp))
@@ -212,12 +236,13 @@ fun QRPaymentScreen(
                     PaymentAppButton(
                         label = "Paytm",
                         onClick = {
-                            openUpiApp(context, s.result.paytmLink)
+                            val intent = Intent(Intent.ACTION_VIEW, Uri.parse(s.result.paytmLink))
+                            upiLauncher.launch(intent)
                         }
                     )
                     Spacer(Modifier.height(10.dp))
 
-                    // ── Other UPI Apps ────────────────────────────────
+                    // ── Other UPI Apps — Chrome Tab (ON_RESUME handles polling) ──
                     PaymentAppButton(
                         label = "Other UPI App",
                         onClick = {
@@ -241,6 +266,65 @@ fun QRPaymentScreen(
                         Text("Cancel", fontSize = 16.sp, fontWeight = FontWeight.Bold, color = Color(0xFFF3EE06))
                     }
                 }
+//                is PaymentViewModel.PaymentState.ReadyToPay -> {
+//
+//                    Text("Pay ₹$amount", fontSize = 26.sp, fontWeight = FontWeight.Bold, color = Color(0xFFF3EE06))
+//                    Spacer(Modifier.height(8.dp))
+//                    Text("Choose payment method", fontSize = 13.sp, color = Color.White.copy(alpha = 0.8f))
+//                    Spacer(Modifier.height(32.dp))
+//
+//                    // ── GPay ──────────────────────────────────────────
+//                    PaymentAppButton(
+//                        label = "Google Pay",
+//                        onClick = {
+//                            openUpiApp(context, s.result.bhimLink)
+//                        }
+//                    )
+//                    Spacer(Modifier.height(10.dp))
+//
+//                    // ── PhonePe ───────────────────────────────────────
+//                    PaymentAppButton(
+//                        label = "PhonePe",
+//                        onClick = {
+//                            val phonepeLink = s.result.bhimLink.replace("upi://", "phonepe://")
+//                            openUpiApp(context, phonepeLink)
+//                        }
+//                    )
+//                    Spacer(Modifier.height(10.dp))
+//
+//                    // ── Paytm ─────────────────────────────────────────
+//                    PaymentAppButton(
+//                        label = "Paytm",
+//                        onClick = {
+//                            openUpiApp(context, s.result.paytmLink)
+//                        }
+//                    )
+//                    Spacer(Modifier.height(10.dp))
+//
+//                    // ── Other UPI Apps ────────────────────────────────
+//                    PaymentAppButton(
+//                        label = "Other UPI App",
+//                        onClick = {
+//                            val uri    = Uri.parse(s.result.paymentUrl)
+//                            val intent = CustomTabsIntent.Builder().build()
+//                            intent.launchUrl(context, uri)
+//                        }
+//                    )
+//
+//                    Spacer(Modifier.height(24.dp))
+//                    Text("Order ID: ${s.result.orderId}", fontSize = 11.sp, color = Color.White.copy(alpha = 0.6f))
+//                    Spacer(Modifier.height(24.dp))
+//
+//                    OutlinedButton(
+//                        onClick  = { navController.navigateUp() },
+//                        modifier = Modifier.fillMaxWidth().height(48.dp),
+//                        shape    = RoundedCornerShape(10.dp),
+//                        border   = BorderStroke(1.dp, Color(0xFF004D00)),
+//                        colors   = ButtonDefaults.outlinedButtonColors(containerColor = Color(0xFF003300))
+//                    ) {
+//                        Text("Cancel", fontSize = 16.sp, fontWeight = FontWeight.Bold, color = Color(0xFFF3EE06))
+//                    }
+//                }
 
                 // ── Verifying payment after returning ─────
                 is PaymentViewModel.PaymentState.Idle -> {

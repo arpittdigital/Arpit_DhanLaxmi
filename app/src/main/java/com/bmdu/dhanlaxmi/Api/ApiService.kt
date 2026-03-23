@@ -2,6 +2,7 @@ package com.bmdu.dhanlaxmi.Api
 
 import com.bmdu.dhanlaxmi.Model.BankDetailsRequest
 import com.bmdu.dhanlaxmi.Model.BankdetailsResponse
+import com.bmdu.dhanlaxmi.Model.ContactResponse
 import com.bmdu.dhanlaxmi.Model.CreatePaymentRequest
 import com.bmdu.dhanlaxmi.Model.CreatePaymentResponse
 import com.bmdu.dhanlaxmi.Model.ForgotRequest
@@ -177,6 +178,11 @@ interface ApiService {
     suspend fun getWinningHistory(
         @Header("Authorization") token: String
     ): Response<WinningHistoryResponse>
+
+    @GET("api/contacts")
+    suspend fun getContacts(
+        @Header("Authorization") token: String
+    ): ContactResponse
 
     @GET
     suspend fun checkPaymentStatus(

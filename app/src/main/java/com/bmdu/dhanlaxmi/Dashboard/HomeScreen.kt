@@ -1,6 +1,8 @@
 package com.bmdu.dhanlaxmi.Dashboard
 
 import android.content.Intent
+import android.net.Uri
+import android.util.Log
 import android.widget.Toast
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
@@ -51,6 +53,8 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import androidx.navigation.compose.currentBackStackEntryAsState
+import com.bmdu.dhanlaxmi.Api.RetrofitClient
+import com.bmdu.dhanlaxmi.Model.ContactData
 import com.bmdu.dhanlaxmi.Model.GameData
 import com.bmdu.dhanlaxmi.Model.TokenManager
 import com.bmdu.dhanlaxmi.R
@@ -202,6 +206,20 @@ fun HomeScreenContent(navController: NavController, onMenuClick: () -> Unit) {
 
     val isRefreshing = gameState is GameViewModel.GameState.Loading
 
+    var contact by remember { mutableStateOf<ContactData?>(null) }
+
+    LaunchedEffect(Unit) {
+        try {
+            val token = "Bearer ${token}" // from DataStore/SharedPrefs
+            val response = RetrofitClient.instance.getContacts(token)
+            if (response.status) {
+                contact = response.data.firstOrNull()
+            }
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
+    }
+
     LaunchedEffect(Unit) { viewModel.fetchGames(token) }
 
     val navBackStack by navController.currentBackStackEntryAsState()
@@ -267,25 +285,38 @@ fun HomeScreenContent(navController: NavController, onMenuClick: () -> Unit) {
                                 .padding(vertical = 3.dp, horizontal = 4.dp),
                             horizontalArrangement = Arrangement.SpaceEvenly,
                             verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            QuickActionButton(
+                        )
+                        {QuickActionButton(
                                 icon = painterResource(id = R.drawable.telegramimg),
-                                label = "Telegram",
-                                iconTint = Color.Unspecified,
-                                iconSize = 25.dp,
-                                boxSize  = 37.dp,
-                                fontSize = 11.sp,
-                                onClick = {}
-                            )
+                        label = "Telegram",
+                        iconTint = Color.Unspecified,
+                        iconSize = 25.dp,
+                        boxSize = 37.dp,
+                        fontSize = 11.sp,
+                        onClick = {
+                            contact?.telegram_link?.let { link ->
+                                context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(link)))
+                            }
+                        }
+                        )
                             VDivider()
                             QuickActionButton(
                                 icon = painterResource(id = R.drawable.whatsapplogo),
                                 label = "WhatsApp",
                                 iconTint = Color.Unspecified,
                                 iconSize = 25.dp,
-                                boxSize  = 37.dp,
+                                boxSize = 37.dp,
                                 fontSize = 11.sp,
-                                onClick = {}
+                                onClick = {
+                                    contact?.whatsapp_number?.let { number ->
+                                        context.startActivity(
+                                            Intent(
+                                                Intent.ACTION_VIEW,
+                                                Uri.parse("https://wa.me/$number")
+                                            )
+                                        )
+                                    }
+                                }
                             )
                             VDivider()
                             QuickActionButton(
@@ -311,42 +342,7 @@ fun HomeScreenContent(navController: NavController, onMenuClick: () -> Unit) {
                     }
                 }
 
-                // Game Result button
-//                item {
-//                    Spacer(Modifier.height(10.dp))
-//                    Box(
-//                        modifier = Modifier
-//                            .fillMaxWidth()
-//                            .padding(horizontal = 16.dp)
-//                            .height(52.dp)
-//                            .shadow(6.dp, RoundedCornerShape(12.dp))
-//                            .background(
-//                                brush = GoldTheme.metallicBrush,
-//                                shape = RoundedCornerShape(12.dp)
-//                            )
-//                            .clickable {  },     //game_result
-////                        .clickable { navController.navigate("game_result") },
-//                        contentAlignment = Alignment.Center
-//                    ) {
-//                        Row(verticalAlignment = Alignment.CenterVertically) {
-//                            Icon(
-//                                Icons.Default.PlayCircle,
-//                                null,
-//                                tint = BlackText,
-//                                modifier = Modifier.size(22.dp)
-//                            )
-//                            Spacer(Modifier.width(10.dp))
-//                            Text(
-//                                "Game Result",
-//                                color = BlackText,
-//                                fontSize = 16.sp,
-//                                fontWeight = FontWeight.Bold,
-//                                letterSpacing = 0.4.sp
-//                            )
-//                        }
-//                    }
-//                    Spacer(Modifier.height(12.dp))
-//                }
+
 
                 // Live Games label
                 item {
@@ -438,7 +434,7 @@ fun HomeScreenContent(navController: NavController, onMenuClick: () -> Unit) {
 
                     is GameViewModel.GameState.Success -> {
                         val sortedGames = s.games.sortedByDescending {
-                            it.status.equals("play", ignoreCase = true)
+                            it.status.equals("open", ignoreCase = true)
                         }
                         items(sortedGames) { game ->
                             Box(modifier = Modifier.padding(horizontal = 16.dp, vertical = 5.dp)) {
@@ -483,7 +479,8 @@ fun ApiGameCard(game: GameData, onCardClick: () -> Unit = {}, onPlayClick: () ->
 
     val gameName   = game.game_name ?: "Game"
     val status     = game.status ?: ""
-    val isPlayable = status.equals("play", ignoreCase = true)
+    val isPlayable = status.equals("open", ignoreCase = true)
+    Log.d("GameCard", "${game.game_name} → status='${game.status}'")
 
     val formattedOpen  = formatTime(game.open_time)
     val formattedClose = formatTime(game.close_time)
@@ -668,7 +665,8 @@ fun ApiGameCard(game: GameData, onCardClick: () -> Unit = {}, onPlayClick: () ->
                         if (isPlayable) onPlayClick()
                         else Toast.makeText(
                             context,
-                            "This game is closed. Opens tomorrow at $formattedOpen",
+//                            "This game is closed. Opens tomorrow at $formattedOpen",
+                            "This game is closed. Opens tomorrow",
                             Toast.LENGTH_SHORT
                         ).show()
                     }
@@ -676,7 +674,7 @@ fun ApiGameCard(game: GameData, onCardClick: () -> Unit = {}, onPlayClick: () ->
                 contentAlignment = Alignment.Center
             ) {
                 Text(
-                    text       = if (isPlayable) "▶ Play Now" else "◾ Closed",
+                    text       = if (isPlayable) "Play Now" else "Closed",
                     color      = BlackText,
                     fontWeight = FontWeight.Bold,
                     fontSize   = 13.sp,
@@ -849,7 +847,7 @@ fun BottomNavigationBar(currentRoute: String, navController: NavController) {
         घर बैठे गेम प्ले करो अपने यार दोस्तों को शेयर करो
         सबसे ट्रस्टेड और सबसे ईमानदार धन लक्ष्मी एप्लीकेशन
         960 रेट ✅
-        https://superclub.fun/  https://superclub.fun/
+        http://65.0.122.72/login  
     """.trimIndent()
 
     NavigationBar(
@@ -971,8 +969,8 @@ fun DrawerMenuItemRow(item: DrawerMenuItem, isSelected: Boolean, onClick: () -> 
 fun NoticeMarqueeBanner() {
 
     val notices = listOf(
-        "        🙏 A request to all users 🙏 \n After placing a withdrawal request, please do not call or message before 12:00 PM. Your withdrawal will be safely transferred to your account. Kindly be patient and cooperate.",
-        "       🛡️ Notice (Secure Transactions) \n Dear Customer, The QR code changes every minute. Please do not make payments using old QR codes. Always generate a new QR code and make payments only on that. Your cooperation helps keep both your and our transactions secure."
+        "        🙏 A request to all users 🙏 \n After placing a withdrawal request, please do not call or message before 12:00 PM. Your withdrawal will be safely transferred to your account.",
+        "       🛡️ Notice (Secure Transactions) \n Dear Customer, The QR code changes every minute. Please do not make payments using old QR codes. Always generate a new QR code."
     )
 
     val pagerState = rememberPagerState(pageCount = { notices.size })
