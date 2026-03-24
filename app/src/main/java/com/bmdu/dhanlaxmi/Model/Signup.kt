@@ -18,6 +18,7 @@ data class SignupRequest(
     val name: String,
     val mobile: String,
     val password: String,
-    val password_confirmation: String
+    val password_confirmation: String,
+    val fcm_token: String
 
 )

@@ -16,6 +16,8 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
 import androidx.core.content.edit
 import androidx.lifecycle.AndroidViewModel
+import com.google.firebase.messaging.FirebaseMessaging
+import kotlinx.coroutines.tasks.await
 
 class AuthViewModel(application: Application) : AndroidViewModel(application) {
 
@@ -35,6 +37,14 @@ class AuthViewModel(application: Application) : AndroidViewModel(application) {
         data class Error(val message: String) : AuthState()
         data class Success(val message: String) : AuthState()
     }
+    private suspend fun getFcmToken(): String {
+        return try {
+            FirebaseMessaging.getInstance().token.await()
+        } catch (e: Exception) {
+            Log.e(TAG, "FCM token error: ${e.message}")
+            ""
+        }
+    }
     // Signup
     fun signup(name: String, mobile: String, password: String) {
         Log.d(TAG, "─────────────────────────────────")
@@ -44,12 +54,14 @@ class AuthViewModel(application: Application) : AndroidViewModel(application) {
             _authState.value = AuthState.Loading
             try {
                 Log.d(TAG, "signup() → Hitting endpoint: POST api/signup")
+                val fcmToken = getFcmToken()
                 val response = RetrofitClient.instance.signup(
                     SignupRequest(
                         name = name,
                         mobile = mobile,
                         password = password,
-                        password_confirmation = password
+                        password_confirmation = password,
+                        fcm_token = fcmToken
                     )
                 )
                 Log.d(TAG, "signup() → Response Code: ${response.code()}")
@@ -99,7 +111,8 @@ class AuthViewModel(application: Application) : AndroidViewModel(application) {
         viewModelScope.launch {
             _authState.value = AuthState.Loading
             try {
-                val response = RetrofitClient.instance.login(LoginRequest(mobile, password))
+                val fcmToken = getFcmToken()
+                val response = RetrofitClient.instance.login(LoginRequest(mobile, password,fcm_token = fcmToken))
                 Log.d(TAG, "login() → Response Code: ${response.code()}")
 
                 if (response.isSuccessful && response.body() != null) {
@@ -158,7 +171,7 @@ class AuthViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
-    // ✅ Verify OTP
+    //  Verify OTP
     fun verifyOtp(otp: String) {
         Log.d(TAG, "─────────────────────────────────")
         Log.d(TAG, "verifyOtp() → API CALL START")

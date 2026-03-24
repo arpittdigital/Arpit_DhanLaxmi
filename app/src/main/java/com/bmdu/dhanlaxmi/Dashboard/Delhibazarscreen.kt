@@ -252,6 +252,14 @@ fun DelhiBazarScreen(
                     Button(
                         onClick = {
                             if (!isLoading && totalAmount > 0) {
+
+                                // ← Min bet check
+                                if (totalAmount < 5) {
+                                    errorMessage = "Minimum bet amount is ₹5"
+                                    showErrorDialog = true
+                                    return@Button
+                                }
+
                                 amountMap.forEach { (number, amtStr) ->
                                     val amt = amtStr.toIntOrNull() ?: 0
                                     if (amt > 0) {
@@ -556,6 +564,12 @@ private fun JodiScreen(
             Button(
                 onClick = {
                     if (!isLoading && totalAmount > 0) {
+
+                        if (totalAmount < 5) {
+                            errorMessage = "Minimum bet amount is ₹5"
+                            showErrorDialog = true
+                            return@Button
+                        }
 
                         // ← Balance check here
                         if (totalAmount > currentBalance) {

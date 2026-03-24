@@ -26,6 +26,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.TrendingDown
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -320,7 +321,7 @@ fun HomeScreenContent(navController: NavController, onMenuClick: () -> Unit) {
                             )
                             VDivider()
                             QuickActionButton(
-                                icon = Icons.Default.Add,
+                                icon = Icons.Default.AccountBalanceWallet,
                                 label = "Add Funds",
                                 iconTint = Color(0xFF6EE98A),
                                 iconSize = 25.dp,
@@ -330,7 +331,7 @@ fun HomeScreenContent(navController: NavController, onMenuClick: () -> Unit) {
                             )
                             VDivider()
                             QuickActionButton(
-                                icon = Icons.Default.Remove,
+                                icon = Icons.Default.CurrencyRupee,
                                 label = "Withdraw",
                                 iconTint = Color(0xFFFC8181),
                                 iconSize = 25.dp,
@@ -510,7 +511,7 @@ fun ApiGameCard(game: GameData, onCardClick: () -> Unit = {}, onPlayClick: () ->
                 if (isPlayable) onCardClick()
                 else Toast.makeText(
                     context,
-                    "This game is closed. Opens tomorrow at $formattedOpen",
+                    "This game is closed. Opens at $formattedOpen",
                     Toast.LENGTH_SHORT
                 ).show()
             },
@@ -666,7 +667,7 @@ fun ApiGameCard(game: GameData, onCardClick: () -> Unit = {}, onPlayClick: () ->
                         else Toast.makeText(
                             context,
 //                            "This game is closed. Opens tomorrow at $formattedOpen",
-                            "This game is closed. Opens tomorrow",
+                            "This game is closed. Opens at $formattedOpen",
                             Toast.LENGTH_SHORT
                         ).show()
                     }
@@ -783,15 +784,18 @@ fun QuickActionButtons(navController: NavController) {
                 onClick  = {}
             )
             VDivider()
+
             QuickActionButton(
-                icon     = Icons.Default.Add,
+                icon     = Icons.Default.AccountBalanceWallet,
                 label    = "Add Funds",
                 iconTint = Color(0xFF6EE98A),
                 onClick  = { navController.navigate("add_money") }
             )
+
             VDivider()
+
             QuickActionButton(
-                icon     = Icons.Default.Remove,
+                icon     = Icons.Default.CurrencyRupee,
                 label    = "Withdraw",
                 iconTint = Color(0xFFFC8181),
                 onClick  = { navController.navigate("withdrawal") }

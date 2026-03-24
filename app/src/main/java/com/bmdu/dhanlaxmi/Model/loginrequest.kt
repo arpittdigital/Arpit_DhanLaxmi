@@ -2,7 +2,8 @@ package com.bmdu.dhanlaxmi.Model
 
 data class LoginRequest(
     val mobile: String,
-    val password: String
+    val password: String,
+    val fcm_token: String
 )
 
 data class loginresponse(
