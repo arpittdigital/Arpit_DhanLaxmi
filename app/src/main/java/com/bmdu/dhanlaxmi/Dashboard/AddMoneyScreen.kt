@@ -23,6 +23,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
+import com.bmdu.dhanlaxmi.ui.theme.GoldTheme
 
 private const val ADD_MONEY_TAG = "AddMoneyScreen"
 
@@ -54,7 +55,7 @@ fun AddMoneyScreen(navController: NavController) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .background(Color(0xFFF3EE06))
+                .background(brush = GoldTheme.metallicBrush)
                 .padding(horizontal = 16.dp, vertical = 14.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
@@ -100,7 +101,7 @@ fun AddMoneyScreen(navController: NavController) {
                 "Add Money",
                 fontSize   = 26.sp,
                 fontWeight = FontWeight.Bold,
-                color      = Color(0xFFF3EE06)
+                color      = GoldText
             )
 
             Spacer(Modifier.height(20.dp))
@@ -143,7 +144,12 @@ fun AddMoneyScreen(navController: NavController) {
                             modifier = Modifier
                                 .weight(1f)
                                 .clip(RoundedCornerShape(8.dp))
-                                .background(if (isSelected) Color(0xFFD4A000) else Color(0xFFF3EE06))
+                                .then(
+                                    if (isSelected)
+                                        Modifier.background(Color(0xFFD4A000), RoundedCornerShape(8.dp))
+                                    else
+                                        Modifier.background(brush = GoldTheme.metallicBrush, shape = RoundedCornerShape(8.dp))
+                                )
                                 .border(
                                     width = if (isSelected) 2.dp else 0.dp,
                                     color = Color.White,

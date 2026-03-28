@@ -14,6 +14,8 @@ data class GameData(
     val close_time: String?,
     val play_next_day: String?,
     val play_days: List<String>?,
+    val old_number: String?,
+    val new_number: String?,
     val number: String?,          // the declared result number
     val result_status: String?,   // "NEW", "OLD", or null/empty
     val andar: String?,

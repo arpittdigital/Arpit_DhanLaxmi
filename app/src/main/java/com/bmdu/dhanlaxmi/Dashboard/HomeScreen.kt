@@ -97,7 +97,7 @@ val drawerMenuItems = listOf(
     DrawerMenuItem(Icons.Filled.AccountBalance, "Banking Details", "bank_details"),
     DrawerMenuItem(Icons.Filled.StarRate,       "Game Rate",       "game_rate"),
     DrawerMenuItem(Icons.Filled.ContactPage,    "Contact Us",      "contact_us"),
-    DrawerMenuItem(Icons.Filled.PlayCircle,     "How to Play",     "how_to_play"),
+//    DrawerMenuItem(Icons.Filled.PlayCircle,     "How to Play",     "how_to_play"),
     DrawerMenuItem(Icons.Filled.Lock,           "Privacy Policy",  "privacy_policy"),
     DrawerMenuItem(Icons.Filled.Logout,         "Logout",          "logout"),
 )
@@ -115,14 +115,14 @@ val bottomNavItems = listOf(
 // ══════════════════════════════════════════════════════════
 
 @Composable
-fun HomeScreen(navController: NavController) {
+fun HomeScreen(navController: NavController,profileViewModel : ProfileViewModel) {
+
     val drawerState      = rememberDrawerState(initialValue = DrawerValue.Closed)
     val scope            = rememberCoroutineScope()
     var selectedRoute    by remember { mutableStateOf("home") }
     var showLogoutDialog by remember { mutableStateOf(false) }
 
-    val viewModel: ProfileViewModel = viewModel()
-    val state by viewModel.profileState.collectAsState()
+    val state by profileViewModel.profileState.collectAsState()
 
     val context = LocalContext.current
     val prefs   = context.getSharedPreferences("auth_prefs", android.content.Context.MODE_PRIVATE)
@@ -141,12 +141,14 @@ fun HomeScreen(navController: NavController) {
         else -> ""
     }
     val userPoints = when (val s = state) {
-        is ProfileViewModel.ProfileState.Success -> s.data.data?.wallet_amount?.toInt() ?: 0
+        is ProfileViewModel.ProfileState.Success -> s.data.data?.wallet_amount ?: 0
         else -> 0
     }
 
     LaunchedEffect(Unit) {
-        if (!token.isNullOrBlank()) viewModel.fetchProfile(token)
+        if (!token.isNullOrBlank()) {
+            profileViewModel.fetchProfile("Bearer $token")  // ← add Bearer
+        }
     }
 
     if (showLogoutDialog) {
@@ -183,11 +185,11 @@ fun HomeScreen(navController: NavController) {
             )
         }
     ) {
-        HomeScreenContent(navController = navController, onMenuClick = { scope.launch { drawerState.open() } })
+        HomeScreenContent(navController = navController, onMenuClick = { scope.launch { drawerState.open() } },profileViewModel = profileViewModel)
     }
     //  Re-fetch profile every time token changes
-    LaunchedEffect(token) {
-        if (!token.isNullOrBlank()) viewModel.fetchProfile(token)
+    LaunchedEffect(Unit) {  // ← Unit triggers every time screen opens
+        if (!token.isNullOrBlank()) profileViewModel.fetchProfile(token)
     }
 }
 
@@ -196,7 +198,7 @@ fun HomeScreen(navController: NavController) {
 // ══════════════════════════════════════════════════════════
 
 @Composable
-fun HomeScreenContent(navController: NavController, onMenuClick: () -> Unit) {
+fun HomeScreenContent(navController: NavController, onMenuClick: () -> Unit,profileViewModel : ProfileViewModel) {
     val context = LocalContext.current
     val prefs = context.getSharedPreferences("auth_prefs", android.content.Context.MODE_PRIVATE)
     val rawToken = prefs.getString("auth_token", null) ?: ""
@@ -227,7 +229,7 @@ fun HomeScreenContent(navController: NavController, onMenuClick: () -> Unit) {
     val currentRoute = navBackStack?.destination?.route ?: "home"
 
     Scaffold(
-        topBar = { TopBar(onMenuClick = onMenuClick, navController = navController) },
+        topBar = { TopBar(onMenuClick = onMenuClick, navController = navController, profileViewModel = profileViewModel) },
         bottomBar = {
             BottomNavigationBar(
                 currentRoute = currentRoute,
@@ -238,7 +240,9 @@ fun HomeScreenContent(navController: NavController, onMenuClick: () -> Unit) {
     ) { padding ->
         SwipeRefresh(
             state = rememberSwipeRefreshState(isRefreshing),
-            onRefresh = { viewModel.fetchGames(token) },
+            onRefresh = { viewModel.fetchGames(token)
+                profileViewModel.fetchProfile("Bearer $token")
+            },
             indicator = { state, trigger ->
 //                SwipeRefreshIndicator(
 //                    state = state,
@@ -337,7 +341,18 @@ fun HomeScreenContent(navController: NavController, onMenuClick: () -> Unit) {
                                 iconSize = 25.dp,
                                 boxSize  = 37.dp,
                                 fontSize = 11.sp,
-                                onClick = { navController.navigate("withdrawal") }
+//                                onClick = {navController.navigate("withdrawal")}
+                                onClick = {
+                                    val now = java.util.Calendar.getInstance()
+                                    val totalMinutes = now.get(java.util.Calendar.HOUR_OF_DAY) * 60 +
+                                            now.get(java.util.Calendar.MINUTE)
+
+                                    if (totalMinutes < 420 || totalMinutes > 750) {
+                                        Toast.makeText(context, "Withdrawal is only available between 7:00 AM and 12:30 PM", Toast.LENGTH_LONG).show()
+                                    } else {
+                                        navController.navigate("withdrawal")
+                                    }
+                                }
                             )
                         }
                     }
@@ -495,14 +510,14 @@ fun ApiGameCard(game: GameData, onCardClick: () -> Unit = {}, onPlayClick: () ->
     // ─────────────────────────────────────────────────────────────────────────
     val number = if (game.number.isNullOrBlank()) "XX" else game.number
 
-    val kalNum: String  // yesterday — left
-    val aajNum: String  // today     — right
+    var kalNum = if (game.old_number.isNullOrBlank()) "XX" else game.old_number
+    var aajNum = if (game.new_number.isNullOrBlank()) "XX" else game.new_number
 
-    when (game.result_status?.uppercase()) {
-        "NEW" -> { aajNum = number; kalNum = "XX" }
-        "OLD" -> { kalNum = number; aajNum = "XX" }
-        else  -> { kalNum = "XX";   aajNum = "XX" }
-    }
+//    when (game.result_status?.uppercase()) {
+//        "NEW" -> { aajNum = number; kalNum = "XX" }
+//        "OLD" -> { kalNum = number; aajNum = "XX" }
+//        else  -> { kalNum = "XX";   aajNum = "XX" }
+//    }
 
     Card(
         modifier  = Modifier
@@ -691,9 +706,8 @@ fun ApiGameCard(game: GameData, onCardClick: () -> Unit = {}, onPlayClick: () ->
 // ══════════════════════════════════════════════════════════
 
 @Composable
-fun TopBar(onMenuClick: () -> Unit, navController: NavController) {
-    val viewModel: ProfileViewModel = viewModel()
-    val state by viewModel.profileState.collectAsState()
+fun TopBar(onMenuClick: () -> Unit, navController: NavController,profileViewModel : ProfileViewModel) {
+    val state by profileViewModel.profileState.collectAsState()
 
     val amount = when (state) {
         is ProfileViewModel.ProfileState.Success ->

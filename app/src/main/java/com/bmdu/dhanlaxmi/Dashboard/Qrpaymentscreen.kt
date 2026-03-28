@@ -51,6 +51,7 @@ import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.bmdu.dhanlaxmi.viewModel.PaymentViewModel
+import com.bmdu.dhanlaxmi.viewModel.ProfileViewModel
 import com.google.zxing.BarcodeFormat
 import com.google.zxing.EncodeHintType
 import com.google.zxing.qrcode.QRCodeWriter
@@ -70,14 +71,24 @@ private const val QR_TAG = "QRPaymentScreen"
 @Composable
 fun QRPaymentScreen(
     navController: NavController,
-    amount: Int
+    amount: Int,
+    profileViewModel : ProfileViewModel
 ) {
     // ── Use new PaymentViewModel instead of BankDetailsViewModel ──
     val viewModel: PaymentViewModel = viewModel()
     val state   by viewModel.state.collectAsState()
     val context = LocalContext.current
     val prefs   = context.getSharedPreferences("auth_prefs", Context.MODE_PRIVATE)
-    val token   = prefs.getString("auth_token", null)
+    val token = prefs.getString("auth_token", null)
+    val bearerToken = if (token?.startsWith("Bearer ") == true) token else "Bearer $token"
+    Log.d("PAYMENT", "token = '$token'")
+    Log.d("PAYMENT", "bearerToken = '$bearerToken'")
+    val profileState by profileViewModel.profileState.collectAsState()
+    val customerId = when (val s = profileState) {
+        is ProfileViewModel.ProfileState.Success ->
+            s.data.data?.customer_id
+        else -> null
+    }
 
 //    val minDeposit = 50
     val minDeposit = 50
@@ -85,7 +96,12 @@ fun QRPaymentScreen(
 
     // ── Call create-payment API when screen opens ────────
     LaunchedEffect(Unit) {
-        viewModel.createPayment(token, amount)
+
+        Log.d("PAYMENT", "token = '$token'")
+        Log.d("PAYMENT", "bearerToken = '$bearerToken'")
+        Log.d("PAYMENT", "amount = $amount")
+        viewModel.setUserId(customerId)
+        viewModel.createPayment(bearerToken, amount)
     }
 
     // ── Start polling when user returns from payment page ─
@@ -95,7 +111,11 @@ fun QRPaymentScreen(
             if (event == Lifecycle.Event.ON_RESUME) {
                 val s = viewModel.state.value
                 if (s is PaymentViewModel.PaymentState.ReadyToPay) {
-                    viewModel.startPolling(s.result.checkLink)
+                    viewModel.startPolling(
+                        checkLink = s.result.checkLink,
+                        token     = bearerToken   // ← add token
+
+                    )
                 }
             }
         }
@@ -108,11 +128,26 @@ fun QRPaymentScreen(
 
     // ── Navigate home on success ─────────────────────────
     LaunchedEffect(state) {
-        if (state is PaymentViewModel.PaymentState.Success) {
-            navController.navigate("home") {
-                popUpTo(0) { inclusive = true }
-                launchSingleTop = true
+        when (val s = state) {
+            is PaymentViewModel.PaymentState.ReadyToPay -> {
+                // Start polling as soon as QR is ready (no need to wait for ON_RESUME)
+                viewModel.startPolling(
+                    checkLink = s.result.checkLink,
+                    token = bearerToken
+                )
             }
+            is PaymentViewModel.PaymentState.Success -> {
+                Log.d("PAYMENT", "✅ Payment success → navigating home")
+                profileViewModel.fetchProfile(bearerToken)
+                navController.navigate("home") {
+                    popUpTo(0) { inclusive = true }
+                    launchSingleTop = true
+                }
+            }
+            is PaymentViewModel.PaymentState.Error -> {
+                Log.e("PAYMENT", "❌ Payment failed: ${s.message}")
+            }
+            else -> Unit
         }
     }
 
@@ -194,11 +229,19 @@ fun QRPaymentScreen(
                         when {
                             response.contains("SUCCESS", ignoreCase = true) ||
                                     response.contains("PAID",    ignoreCase = true) -> {
-                                viewModel.startPolling(s.result.checkLink)
+                                viewModel.startPolling(
+                                    checkLink = s.result.checkLink,
+                                    token     = bearerToken,  // ← add
+                                          // ← add
+                                )
                             }
                             response.contains("FAILURE", ignoreCase = true) ||
                                     response.contains("FAILED",  ignoreCase = true) -> {
-                                viewModel.startPolling(s.result.checkLink) // server is source of truth
+                                viewModel.startPolling(
+                                    checkLink = s.result.checkLink,
+                                    token     = bearerToken,  // ← add
+                                          // ← add
+                                )// server is source of truth
                             }
                             else -> {
                                 // user cancelled or closed the app — do nothing
@@ -215,8 +258,13 @@ fun QRPaymentScreen(
                     PaymentAppButton(
                         label = "Google Pay",
                         onClick = {
-                            val intent = Intent(Intent.ACTION_VIEW, Uri.parse(s.result.bhimLink))
-                            upiLauncher.launch(intent)
+                            try {
+                                val intent = Intent(Intent.ACTION_VIEW, Uri.parse(s.result.bhimLink))
+                                upiLauncher.launch(intent)
+                            } catch (e: Exception) {
+                                // fallback if no app handles it
+                                Toast.makeText(context, "No app found", Toast.LENGTH_SHORT).show()
+                            }
                         }
                     )
                     Spacer(Modifier.height(10.dp))
@@ -225,19 +273,29 @@ fun QRPaymentScreen(
                     PaymentAppButton(
                         label = "PhonePe",
                         onClick = {
-                            val phonepeLink = s.result.bhimLink.replace("upi://", "phonepe://")
-                            val intent = Intent(Intent.ACTION_VIEW, Uri.parse(phonepeLink))
-                            upiLauncher.launch(intent)
+                            try {
+                                val phonepeLink = s.result.bhimLink.replace("upi://", "phonepe://")
+                                val intent = Intent(Intent.ACTION_VIEW, Uri.parse(phonepeLink))
+                                upiLauncher.launch(intent)
+                            } catch (e: Exception) {
+                                // Fallback to generic UPI link if PhonePe not installed
+                                Toast.makeText(context, "No app found", Toast.LENGTH_SHORT).show()
+                            }
                         }
                     )
                     Spacer(Modifier.height(10.dp))
 
-                    // ── Paytm ─────────────────────────────────────────
+// ── Paytm ─────────────────────────────────────────
                     PaymentAppButton(
                         label = "Paytm",
                         onClick = {
-                            val intent = Intent(Intent.ACTION_VIEW, Uri.parse(s.result.paytmLink))
-                            upiLauncher.launch(intent)
+                            try {
+                                val intent = Intent(Intent.ACTION_VIEW, Uri.parse(s.result.paytmLink))
+                                upiLauncher.launch(intent)
+                            } catch (e: Exception) {
+                                // Fallback to generic UPI link if Paytm not installed
+                                Toast.makeText(context, "No app found", Toast.LENGTH_SHORT).show()
+                            }
                         }
                     )
                     Spacer(Modifier.height(10.dp))
@@ -246,9 +304,8 @@ fun QRPaymentScreen(
                     PaymentAppButton(
                         label = "Other UPI App",
                         onClick = {
-                            val uri    = Uri.parse(s.result.paymentUrl)
-                            val intent = CustomTabsIntent.Builder().build()
-                            intent.launchUrl(context, uri)
+                            val intent = Intent(Intent.ACTION_VIEW, Uri.parse(s.result.paymentUrl))
+                            context.startActivity(intent)  // ← regular browser, ON_RESUME fires correctly
                         }
                     )
 
@@ -266,65 +323,6 @@ fun QRPaymentScreen(
                         Text("Cancel", fontSize = 16.sp, fontWeight = FontWeight.Bold, color = Color(0xFFF3EE06))
                     }
                 }
-//                is PaymentViewModel.PaymentState.ReadyToPay -> {
-//
-//                    Text("Pay ₹$amount", fontSize = 26.sp, fontWeight = FontWeight.Bold, color = Color(0xFFF3EE06))
-//                    Spacer(Modifier.height(8.dp))
-//                    Text("Choose payment method", fontSize = 13.sp, color = Color.White.copy(alpha = 0.8f))
-//                    Spacer(Modifier.height(32.dp))
-//
-//                    // ── GPay ──────────────────────────────────────────
-//                    PaymentAppButton(
-//                        label = "Google Pay",
-//                        onClick = {
-//                            openUpiApp(context, s.result.bhimLink)
-//                        }
-//                    )
-//                    Spacer(Modifier.height(10.dp))
-//
-//                    // ── PhonePe ───────────────────────────────────────
-//                    PaymentAppButton(
-//                        label = "PhonePe",
-//                        onClick = {
-//                            val phonepeLink = s.result.bhimLink.replace("upi://", "phonepe://")
-//                            openUpiApp(context, phonepeLink)
-//                        }
-//                    )
-//                    Spacer(Modifier.height(10.dp))
-//
-//                    // ── Paytm ─────────────────────────────────────────
-//                    PaymentAppButton(
-//                        label = "Paytm",
-//                        onClick = {
-//                            openUpiApp(context, s.result.paytmLink)
-//                        }
-//                    )
-//                    Spacer(Modifier.height(10.dp))
-//
-//                    // ── Other UPI Apps ────────────────────────────────
-//                    PaymentAppButton(
-//                        label = "Other UPI App",
-//                        onClick = {
-//                            val uri    = Uri.parse(s.result.paymentUrl)
-//                            val intent = CustomTabsIntent.Builder().build()
-//                            intent.launchUrl(context, uri)
-//                        }
-//                    )
-//
-//                    Spacer(Modifier.height(24.dp))
-//                    Text("Order ID: ${s.result.orderId}", fontSize = 11.sp, color = Color.White.copy(alpha = 0.6f))
-//                    Spacer(Modifier.height(24.dp))
-//
-//                    OutlinedButton(
-//                        onClick  = { navController.navigateUp() },
-//                        modifier = Modifier.fillMaxWidth().height(48.dp),
-//                        shape    = RoundedCornerShape(10.dp),
-//                        border   = BorderStroke(1.dp, Color(0xFF004D00)),
-//                        colors   = ButtonDefaults.outlinedButtonColors(containerColor = Color(0xFF003300))
-//                    ) {
-//                        Text("Cancel", fontSize = 16.sp, fontWeight = FontWeight.Bold, color = Color(0xFFF3EE06))
-//                    }
-//                }
 
                 // ── Verifying payment after returning ─────
                 is PaymentViewModel.PaymentState.Idle -> {

@@ -37,8 +37,8 @@ private val RowBg       = Color(0xFF0D1F0D)
 fun GameRatesScreen(navController: NavController) {
 
     val rates = listOf(
-        "Andar Haruf"  to "10-96",
-        "Bahar Haruf"  to "10-96",
+        "Haruf Andar "  to "10-96",
+        "Haruf Bahar"  to "10-96",
         "Jodi Digit"   to "10-960"
     )
 

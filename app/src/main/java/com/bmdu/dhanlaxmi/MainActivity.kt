@@ -40,6 +40,7 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
+        setIntent(intent)
         setContent {
 
 
@@ -120,8 +121,18 @@ class MainActivity : ComponentActivity() {
                             composable("resetsuccess") { ResetSuccessScreen(navController) }
 
                             // ── Main Screens ─────────────────────────────
-                            composable("home") { HomeScreen(navController) }
-                            composable("profile_screen") { ProfileScreen(navController) }
+                            composable("home") {
+                                HomeScreen(
+                                    navController    = navController,
+                                    profileViewModel = profileViewModel  // ← pass same instance
+                                )
+                            }
+                            composable("profile_screen") {
+                                ProfileScreen(
+                                    navController    = navController,
+                                    profileViewModel = profileViewModel  // ← pass same instance
+                                )
+                            }
                             composable("add_money") { AddMoneyScreen(navController) }
                             composable("withdrawal") { WithdrawalMoneyScreen(navController) }
                             composable(
@@ -133,7 +144,8 @@ class MainActivity : ComponentActivity() {
                                 val amount = backStackEntry.arguments?.getInt("amount") ?: 0
                                 QRPaymentScreen(
                                     navController = navController,
-                                    amount = amount
+                                    amount = amount,
+                                    profileViewModel = profileViewModel
                                 )
                             }
                             composable("bank_details") { BankDetailsScreen(navController) }

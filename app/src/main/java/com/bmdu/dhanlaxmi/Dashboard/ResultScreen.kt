@@ -59,10 +59,11 @@ fun ResultScreen(
                 }
             },
             colors = TopAppBarDefaults.topAppBarColors(
-                containerColor = Color(0xFFC4BE01),
+                containerColor = Color(0xFFE6B800),
                 titleContentColor = Color.Black,
                 navigationIconContentColor = Color.Black
-            )
+            ),
+                    windowInsets = WindowInsets(0.dp)
         )
 
         // ── Content ───────────────────────────────────────────────────────────

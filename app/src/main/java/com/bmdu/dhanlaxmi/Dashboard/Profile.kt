@@ -23,6 +23,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import com.bmdu.dhanlaxmi.viewModel.ProfileViewModel
 
@@ -40,10 +41,10 @@ private val PYellowLight = Color(0xFFF0C000)
 // ══════════════════════════════════════════════════════════
 
 @Composable
-fun ProfileScreen(navController: NavController) {
+fun ProfileScreen(navController: NavController,profileViewModel : ProfileViewModel) {
 
-    val viewModel: ProfileViewModel = androidx.lifecycle.viewmodel.compose.viewModel()
-    val state by viewModel.profileState.collectAsState()
+    val state by profileViewModel.profileState.collectAsState()
+    Log.d("PROFILE", "state = $state")
 
     val context = LocalContext.current
     val prefs   = context.getSharedPreferences("auth_prefs", android.content.Context.MODE_PRIVATE)
@@ -53,7 +54,7 @@ fun ProfileScreen(navController: NavController) {
     LaunchedEffect(Unit) {
         if (!token.isNullOrBlank()) {
             Log.d(PROFILE_TAG, "LaunchedEffect: fetching profile")
-            viewModel.fetchProfile(token)
+            profileViewModel.fetchProfile("Bearer $token")
         } else {
             Log.e(PROFILE_TAG, "LaunchedEffect: token is null — cannot fetch profile")
         }
@@ -115,7 +116,7 @@ fun ProfileScreen(navController: NavController) {
                         )
                         Spacer(Modifier.height(16.dp))
                         Button(
-                            onClick = { token?.let { viewModel.fetchProfile(it) } },
+                            onClick = { token?.let { profileViewModel.fetchProfile(token) } },
                             colors  = ButtonDefaults.buttonColors(containerColor = PYellowMain)
                         ) {
                             Text("Retry", color = Color.Black, fontWeight = FontWeight.Bold)

@@ -51,10 +51,10 @@ fun DelhiBazarScreen(
     val context = LocalContext.current
     val profileState by profileViewModel.profileState.collectAsState()
     val walletBalance = when (val s = profileState) {
-        is ProfileViewModel.ProfileState.Success ->
-            s.data.data?.wallet_amount
-                ?.toFloat()
-                ?.toInt() ?: 0   // "1700.00" → 1700.0f → 1700
+        is ProfileViewModel.ProfileState.Success -> {val amt = s.data.data?.wallet_amount ?: 0
+            Log.d("WALLET", "walletBalance updated = $amt") // ← add this
+            amt
+        }
         else -> 0
     }
 
@@ -90,7 +90,8 @@ fun DelhiBazarScreen(
                 if (selectedTab != 0) {              // ← only show for Crossing/CopyPaste
                     showBidReceivedDialog = true
                 }
-                profileViewModel.fetchProfile(token)
+                Log.d("WALLET", "Fetching profile after bid → token: $token")
+                profileViewModel.fetchProfile("Bearer $token")
                 gameViewModel.resetPlayState()
             }
             is GameViewModel.PlayState.Error -> {
@@ -153,7 +154,7 @@ fun DelhiBazarScreen(
     if (showErrorDialog) {
         AlertDialog(
             onDismissRequest = { showErrorDialog = false },
-            title = { Text("Error", fontWeight = FontWeight.Bold) },
+            title = { Text("", fontWeight = FontWeight.Bold) },
             text = { Text(errorMessage) },
             confirmButton = {
                 Button(
@@ -253,7 +254,14 @@ fun DelhiBazarScreen(
                         onClick = {
                             if (!isLoading && totalAmount > 0) {
 
-                                // ← Min bet check
+                                // ── Min bet per entry check ───────────────────
+                                val belowMinEntry = amountMap.values.any { (it.toIntOrNull() ?: 0) < 5 }
+                                if (belowMinEntry) {
+                                    Toast.makeText(context, "Minimum bet amount per number is ₹5", Toast.LENGTH_SHORT).show()
+                                    return@Button
+                                }
+
+                                // ── Min total check ───────────────────────────
                                 if (totalAmount < 5) {
                                     errorMessage = "Minimum bet amount is ₹5"
                                     showErrorDialog = true
@@ -428,7 +436,7 @@ private fun JodiScreen(
     if (showErrorDialog) {
         AlertDialog(
             onDismissRequest = { showErrorDialog = false },
-            title = { Text("Error", fontWeight = FontWeight.Bold) },
+            title = { Text("", fontWeight = FontWeight.Bold) },
             text = { Text(errorMessage) },
             confirmButton = {
                 Button(
@@ -490,7 +498,7 @@ private fun JodiScreen(
                 }
             }
 
-            // ── ANDAR Haruf (अंदर) ─────────────────────────────────────────
+            // ── ANDAR Haruf (अंदर) ────────────────
             Text(
                 "Andar Haruf (अंदर)",
                 fontSize = 14.sp,
@@ -543,7 +551,7 @@ private fun JodiScreen(
             Spacer(modifier = Modifier.height(8.dp))
         }
 
-        // ── FIXED Place Bet Bottom Bar ──────────────────────────────────────
+        // ── FIXED Place Bet Bottom Bar ────────────────────
         Row(
             modifier = Modifier
                 .fillMaxWidth()
@@ -565,13 +573,23 @@ private fun JodiScreen(
                 onClick = {
                     if (!isLoading && totalAmount > 0) {
 
+                        // ── Min bet per entry check ───────────────────
+                        val belowMinEntry = jodiAmountMap.values.any { (it.toIntOrNull() ?: 0) < 5 } ||
+                                andarAmountMap.values.any { (it.toIntOrNull() ?: 0) < 5 } ||
+                                baharAmountMap.values.any { (it.toIntOrNull() ?: 0) < 5 }
+                        if (belowMinEntry) {
+                            Toast.makeText(context, "Minimum bet amount per number is ₹5", Toast.LENGTH_SHORT).show()
+                            return@Button
+                        }
+
+                        // ── Min total check ───────────────────────────
                         if (totalAmount < 5) {
                             errorMessage = "Minimum bet amount is ₹5"
                             showErrorDialog = true
                             return@Button
                         }
 
-                        // ← Balance check here
+                        // ── Balance check ─────────────────────────────
                         if (totalAmount > currentBalance) {
                             errorMessage = "Insufficient balance!"
                             showErrorDialog = true
@@ -718,6 +736,7 @@ private fun CrossingScreen(amountMap: MutableMap<Int, String>) {
     val yellowBtn = Color(0xFFFDD835)
     val bgColor = Color(0xFFFFFFFF)
     val textColor = Color(0xFF1B1B1B)
+    val context = LocalContext.current
 
     var digitInput by remember { mutableStateOf("") }
     var amountInput by remember { mutableStateOf("") }
@@ -735,7 +754,7 @@ private fun CrossingScreen(amountMap: MutableMap<Int, String>) {
 
         OutlinedTextField(
             value = digitInput,
-            onValueChange = { if (it.length <= 2 && it.all { ch -> ch.isDigit() }) digitInput = it },
+            onValueChange = { if (it.length <= 6 && it.all { ch -> ch.isDigit() }) digitInput = it },
             modifier = Modifier.fillMaxWidth().padding(bottom = 12.dp), // ← no height()
             placeholder = { Text("00", color = Color.Gray) },
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
@@ -773,13 +792,25 @@ private fun CrossingScreen(amountMap: MutableMap<Int, String>) {
         Button(
             onClick = {
                 if (digitInput.isNotEmpty() && amountInput.isNotEmpty()) {
-                    val digits = digitInput // e.g. "12"
+                    val digits = digitInput // e.g. "123"
 
-                    // Generate all combinations of each digit with every other digit
-                    digits.forEach { d1 ->
-                        digits.forEach { d2 ->
-                            val num = "$d1$d2".toIntOrNull() ?: 0
-                            amountMap[num] = amountInput
+                    if (digits.length == 1) {
+                        Toast.makeText(context, "Enter at least 2 digits!", Toast.LENGTH_SHORT).show()
+                        return@Button
+                    }
+
+                    if (digits.length != digits.toSet().size) {
+                        // show error — you can use a Snackbar or a state variable
+                        Toast.makeText(context, "Duplicate digits not allowed!", Toast.LENGTH_SHORT).show()
+                        return@Button
+                    }
+
+                    // Generate all crossing combos: every digit paired with every OTHER digit
+                    for (i in digits.indices) {
+                        for (j in digits.indices) {
+
+                                val num = "${digits[i]}${digits[j]}".toIntOrNull() ?: 0
+                                amountMap[num] = amountInput
                         }
                     }
 

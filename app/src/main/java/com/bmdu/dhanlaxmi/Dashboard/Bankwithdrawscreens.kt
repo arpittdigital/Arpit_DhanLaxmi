@@ -1,6 +1,7 @@
 package com.bmdu.dhanlaxmi.Dashboard
 
 import android.util.Log
+import android.widget.Toast
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -9,6 +10,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AccountBalance
@@ -23,6 +25,7 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -238,9 +241,14 @@ fun WithdrawalMoneyScreen(navController: NavController) {
                 }
             }
 
-            WithdrawTextField(amount,      "Amount",       { amount = it })
+            WithdrawTextField(amount,      "Amount",       { amount = it },keyboardType  = KeyboardType.Number)
             Spacer(Modifier.height(14.dp))
-            WithdrawTextField(phoneNumber, "Phone Number", { phoneNumber = it })
+            WithdrawTextField(
+                value         = phoneNumber,
+                placeholder   = "Phone Number",
+                onValueChange = { if (it.length <= 10 && it.all { ch -> ch.isDigit() }) phoneNumber = it },
+                keyboardType  = KeyboardType.Number
+            )
             Spacer(Modifier.height(14.dp))
 
             // ── Payment Mode Dropdown ────────────────────
@@ -358,6 +366,10 @@ fun WithdrawalMoneyScreen(navController: NavController) {
             Button(
                 onClick = {
                     val parsedAmount = amount.trim().toIntOrNull() ?: 0
+                    if (parsedAmount < 100) {
+                        Toast.makeText(context, "Minimum withdrawal amount is ₹100", Toast.LENGTH_SHORT).show()
+                        return@Button
+                    }
                     val apiMode      = paymentModes[selectedMode] ?: selectedMode.lowercase()
                     viewModel.withdrawal(
                         token         = token,
@@ -516,11 +528,12 @@ private fun HistoryRow(label: String, value: String) {
 }
 
 @Composable
-fun WithdrawTextField(value: String, placeholder: String, onValueChange: (String) -> Unit) {
+fun WithdrawTextField(value: String, placeholder: String, onValueChange: (String) -> Unit,keyboardType: KeyboardType = KeyboardType.Text) {
     OutlinedTextField(
         value = value, onValueChange = onValueChange,
         placeholder = { Text(placeholder, color = Color.Gray, fontSize = 15.sp) },
         modifier = Modifier.fillMaxWidth(), singleLine = true,
+        keyboardOptions = KeyboardOptions(keyboardType = keyboardType),
         colors = OutlinedTextFieldDefaults.colors(
             focusedContainerColor   = Color.White,
             unfocusedContainerColor = Color.White,

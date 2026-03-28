@@ -12,6 +12,8 @@ import com.bmdu.dhanlaxmi.Model.HistoryResponse
 import com.bmdu.dhanlaxmi.Model.LoginRequest
 import com.bmdu.dhanlaxmi.Model.NotificationResponse
 import com.bmdu.dhanlaxmi.Model.PaymentHistoryResponse
+import com.bmdu.dhanlaxmi.Model.PaymentSuccessRequest
+import com.bmdu.dhanlaxmi.Model.PaymentSuccessResponse
 import com.bmdu.dhanlaxmi.Model.PlayRequest
 import com.bmdu.dhanlaxmi.Model.PlayResponse
 import com.bmdu.dhanlaxmi.Model.ProfileResponse
@@ -77,6 +79,13 @@ interface ApiService {
         @Header("Authorization") token: String,
         @Body bankdetailsRequest: BankDetailsRequest
     ): Response<BankdetailsResponse>
+
+
+    @POST("api/payment-success")
+    suspend fun confirmPayment(
+        @Header("Authorization") token: String,
+        @Body request: PaymentSuccessRequest
+    ): Response<PaymentSuccessResponse>
 
 
     @GET("api/games")
@@ -185,9 +194,7 @@ interface ApiService {
     ): ContactResponse
 
     @GET
-    suspend fun checkPaymentStatus(
-        @Url url: String
-    ): Response<JsonObject>
+    suspend fun checkPaymentStatus(@Url checkLink: String): Response<String>
 }
 
 

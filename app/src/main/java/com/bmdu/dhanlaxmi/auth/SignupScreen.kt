@@ -15,6 +15,8 @@ import androidx.compose.material.icons.filled.AccountCircle
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Call
 import androidx.compose.material.icons.filled.Lock
+import androidx.compose.material.icons.filled.Visibility
+import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -29,6 +31,7 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
+import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -42,7 +45,7 @@ fun SignupScreen(navController: NavController) {
     var username by remember { mutableStateOf("") }
     var mobile by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
-
+    var passwordVisible by remember { mutableStateOf(false) }
     var usernameError by remember { mutableStateOf("") }
     var mobileError by remember { mutableStateOf("") }
     var passwordError by remember { mutableStateOf("") }
@@ -287,6 +290,7 @@ fun SignupScreen(navController: NavController) {
                         errorMessage = ""
                     },
                     placeholder = { Text("Password", color = Color.White) },
+
                     leadingIcon = {
                         Icon(
                             imageVector = Icons.Default.Lock,
@@ -294,10 +298,35 @@ fun SignupScreen(navController: NavController) {
                             tint = Color.White
                         )
                     },
-                    visualTransformation = PasswordVisualTransformation(),  // Hides password
+
+                    //  Eye Icon
+                    trailingIcon = {
+                        val image = if (passwordVisible)
+                            Icons.Default.Visibility
+                        else
+                            Icons.Default.VisibilityOff
+
+                        IconButton(onClick = {
+                            passwordVisible = !passwordVisible
+                        }) {
+                            Icon(
+                                imageVector = image,
+                                contentDescription = "Toggle Password",
+                                tint = Color.White
+                            )
+                        }
+                    },
+
+                    // 👇 Toggle visibility here
+                    visualTransformation = if (passwordVisible)
+                        VisualTransformation.None
+                    else
+                        PasswordVisualTransformation(),
+
                     isError = passwordError.isNotEmpty(),
                     singleLine = true,
                     shape = RoundedCornerShape(12.dp),
+
                     colors = OutlinedTextFieldDefaults.colors(
                         focusedBorderColor = colorResource(id = R.color.textsecondary),
                         unfocusedBorderColor = colorResource(id = R.color.textsecondary),
@@ -426,43 +455,43 @@ fun SignupScreen(navController: NavController) {
 
                 Spacer(modifier = Modifier.height(50.dp))
 
-                Text(
-                    text = "Contact Us",
-                    color = colorResource(id = R.color.textsecondary),
-                    modifier = Modifier.fillMaxWidth(),
-                    fontSize = 18.sp,
-                    fontWeight = FontWeight.W400,
-                    textAlign = TextAlign.Center
-                )
-
-                Spacer(modifier = Modifier.height(10.dp))
-
-                Divider(
-                    modifier = Modifier.padding(start = 20.dp, end = 20.dp),
-                    color = colorResource(id = R.color.textsecondary),
-                    thickness = 1.dp,
-                )
-
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 86.dp, vertical = 20.dp),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.Call,
-                        contentDescription = null,
-                        tint = Color.Blue,
-                        modifier = Modifier.size(24.dp)
-                    )
-                    Icon(
-                        painter = painterResource(id = R.drawable.whatsapplogo),
-                        contentDescription = null,
-                        tint = colorResource(id = R.color.background),
-                        modifier = Modifier.size(24.dp)
-                    )
-                }
+//                Text(
+//                    text = "Contact Us",
+//                    color = colorResource(id = R.color.textsecondary),
+//                    modifier = Modifier.fillMaxWidth(),
+//                    fontSize = 18.sp,
+//                    fontWeight = FontWeight.W400,
+//                    textAlign = TextAlign.Center
+//                )
+//
+//                Spacer(modifier = Modifier.height(10.dp))
+//
+//                Divider(
+//                    modifier = Modifier.padding(start = 20.dp, end = 20.dp),
+//                    color = colorResource(id = R.color.textsecondary),
+//                    thickness = 1.dp,
+//                )
+//
+//                Row(
+//                    modifier = Modifier
+//                        .fillMaxWidth()
+//                        .padding(horizontal = 86.dp, vertical = 20.dp),
+//                    horizontalArrangement = Arrangement.SpaceBetween,
+//                    verticalAlignment = Alignment.CenterVertically
+//                ) {
+//                    Icon(
+//                        imageVector = Icons.Default.Call,
+//                        contentDescription = null,
+//                        tint = Color.Blue,
+//                        modifier = Modifier.size(24.dp)
+//                    )
+//                    Icon(
+//                        painter = painterResource(id = R.drawable.whatsapplogo),
+//                        contentDescription = null,
+//                        tint = colorResource(id = R.color.background),
+//                        modifier = Modifier.size(24.dp)
+//                    )
+//                }
             }
         }
     }

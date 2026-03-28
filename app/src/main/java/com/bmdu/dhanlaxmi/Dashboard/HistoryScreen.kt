@@ -317,7 +317,7 @@ fun HistoryStatusBadge(status: String) {
             borderColor = Color(0xFF00E676).copy(alpha = 0.3f)
             label       = "Win"
         }
-        "loss" -> {
+        "lose" -> {
             bgColor     = Color(0xFFCC4444).copy(alpha = 0.12f)
             textColor   = Color(0xFFFF6B6B)
             borderColor = Color(0xFFCC4444).copy(alpha = 0.3f)

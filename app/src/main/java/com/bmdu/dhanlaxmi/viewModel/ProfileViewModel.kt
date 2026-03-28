@@ -9,6 +9,7 @@ import com.bmdu.dhanlaxmi.Model.ProfileResponse
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
+import java.lang.System.err
 
 class ProfileViewModel : ViewModel() {
 
@@ -53,13 +54,15 @@ class ProfileViewModel : ViewModel() {
             _profileState.value = ProfileState.Loading
             try {
                 val response = RetrofitClient.instance.getProfile(authHeader)
-                Log.d(TAG, "fetchProfile: HTTP ${response.code()} | Success=${response.isSuccessful}")
+                Log.d("PROFILE", "fetchProfile → code: ${response.code()}") // ← add
+                Log.d("PROFILE", "fetchProfile → body: ${response.body()}")
 
                 if (response.isSuccessful && response.body() != null) {
                     Log.d(TAG, "fetchProfile: ✅ Success → data=${response.body()!!.data}")
                     _profileState.value = ProfileState.Success(response.body()!!)
                 } else {
                     val errorBody = response.errorBody()?.string() ?: "No error body"
+                    Log.e("PROFILE", "fetchProfile → error: $err")
                     Log.e(TAG, "fetchProfile:  Error → code=${response.code()}, body=$errorBody")
                     _profileState.value = ProfileState.Error(
                         when (response.code()) {
@@ -72,6 +75,7 @@ class ProfileViewModel : ViewModel() {
                 }
             } catch (e: Exception) {
                 Log.e(TAG, "fetchProfile:  Exception → ${e.javaClass.simpleName}: ${e.message}", e)
+                Log.e("PROFILE", "fetchProfile → exception: ${e.localizedMessage}")
                 _profileState.value = ProfileState.Error(
                     e.localizedMessage ?: "Network error. Check your internet connection."
                 )
