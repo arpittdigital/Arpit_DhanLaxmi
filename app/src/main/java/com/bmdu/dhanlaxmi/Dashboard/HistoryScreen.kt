@@ -60,6 +60,7 @@ fun HistoryScreen(
             modifier = Modifier
                 .fillMaxWidth()
                 .background(brush = GoldTheme.metallicBrush)
+                .statusBarsPadding()
                 .padding(horizontal = 16.dp, vertical = 14.dp)
         ) {
             IconButton(

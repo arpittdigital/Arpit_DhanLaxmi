@@ -62,8 +62,7 @@ fun ResultScreen(
                 containerColor = Color(0xFFE6B800),
                 titleContentColor = Color.Black,
                 navigationIconContentColor = Color.Black
-            ),
-                    windowInsets = WindowInsets(0.dp)
+            )
         )
 
         // ── Content ───────────────────────────────────────────────────────────

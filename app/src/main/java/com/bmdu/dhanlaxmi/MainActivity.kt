@@ -7,10 +7,12 @@ import android.os.Build
 import android.os.Bundle
 import android.util.Log
 import androidx.activity.ComponentActivity
+import androidx.activity.SystemBarStyle
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Scaffold
@@ -39,7 +41,11 @@ import com.d_shield_parent.presentation.auth.WinningHistoryScreen
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        enableEdgeToEdge()
+        enableEdgeToEdge(
+            statusBarStyle = SystemBarStyle.dark(
+                android.graphics.Color.TRANSPARENT
+            )
+        )
         setIntent(intent)
         setContent {
 
@@ -95,11 +101,12 @@ class MainActivity : ComponentActivity() {
 
 
                 DhanLaxmiTheme {
-                    Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
-                        NavHost(
+                    Box (modifier = Modifier.fillMaxSize(),
+//                        contentWindowInsets = WindowInsets(0.dp)
+                    )
+                    {  NavHost(
                             navController = navController,
                             startDestination = "splash",
-                            modifier = Modifier.padding(innerPadding)
                         ) {
                             composable("splash") {
                                 SplashScreen(

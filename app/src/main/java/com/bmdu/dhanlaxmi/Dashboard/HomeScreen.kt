@@ -718,8 +718,9 @@ fun TopBar(onMenuClick: () -> Unit, navController: NavController,profileViewMode
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .height(64.dp)
             .background(brush = GoldTheme.metallicBrush)
+            .statusBarsPadding()
+            .height(64.dp)
             .padding(horizontal = 12.dp),
         verticalAlignment     = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.SpaceBetween
@@ -870,7 +871,7 @@ fun BottomNavigationBar(currentRoute: String, navController: NavController) {
 
     NavigationBar(
         containerColor = Color.Transparent,
-        modifier       = Modifier.height(68.dp).background(brush = GoldTheme.metallicBrushHorizontal)
+        modifier       = Modifier.height(68.dp).background(brush = GoldTheme.metallicBrushHorizontal).navigationBarsPadding()
     ) {
         bottomNavItems.forEach { (route, icon, label) ->
             val isSelected = currentRoute == route

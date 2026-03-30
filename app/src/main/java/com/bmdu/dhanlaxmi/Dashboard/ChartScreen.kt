@@ -135,6 +135,7 @@ fun ChartScreen(
             modifier = Modifier
                 .fillMaxWidth()
                 .background(Color(0xFFE6B800))
+                .statusBarsPadding()
                 .padding(horizontal = 16.dp, vertical = 14.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {

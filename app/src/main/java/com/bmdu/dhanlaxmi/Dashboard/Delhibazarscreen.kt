@@ -30,6 +30,7 @@ import android.util.Log
 import android.widget.Toast
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.runtime.snapshots.SnapshotStateMap
 import androidx.core.graphics.component1
 import com.bmdu.dhanlaxmi.viewModel.GameViewModel
@@ -172,13 +173,18 @@ fun DelhiBazarScreen(
             modifier = Modifier
                 .fillMaxWidth()
                 .background(bgDark)
+                .statusBarsPadding()
                 .padding(horizontal = 16.dp, vertical = 14.dp),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 IconButton(onClick = { navController.popBackStack() }) {
-                    Text("←", fontSize = 22.sp, color = Color.White, fontWeight = FontWeight.Bold)
+                    Icon(
+                        imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                        contentDescription = "Back",
+                        tint = Color.White
+                    )
                 }
                 Spacer(modifier = Modifier.width(4.dp))
                 Text(gameName.uppercase(), fontSize = 20.sp, fontWeight = FontWeight.Bold, color = Color.White)
