@@ -75,6 +75,7 @@ fun ProfileScreen(navController: NavController,profileViewModel : ProfileViewMod
                 .background(
                     Brush.horizontalGradient(colors = listOf(PYellowMain, PYellowLight))
                 )
+                .statusBarsPadding()
                 .padding(horizontal = 16.dp, vertical = 14.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {

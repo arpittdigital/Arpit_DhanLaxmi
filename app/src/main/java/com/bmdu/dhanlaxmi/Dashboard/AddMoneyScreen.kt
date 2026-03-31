@@ -44,11 +44,7 @@ fun AddMoneyScreen(navController: NavController) {
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(
-                Brush.verticalGradient(
-                    colors = listOf(Color(0xFF00A904), Color(0xFF004D02))
-                )
-            )
+            .background(Color(0xFF002800))
     ) {
 
         // ── Top Bar ───────────────────────────────────────
@@ -56,6 +52,7 @@ fun AddMoneyScreen(navController: NavController) {
             modifier = Modifier
                 .fillMaxWidth()
                 .background(brush = GoldTheme.metallicBrush)
+                .statusBarsPadding()
                 .padding(horizontal = 16.dp, vertical = 14.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {

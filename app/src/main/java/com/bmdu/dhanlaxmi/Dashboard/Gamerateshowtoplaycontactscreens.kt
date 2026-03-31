@@ -269,6 +269,7 @@ private fun TopBar(title: String, onBack: () -> Unit) {
         modifier = Modifier
             .fillMaxWidth()
             .background(Brush.horizontalGradient(listOf(YellowMain, YellowLight)))
+            .statusBarsPadding()
             .padding(horizontal = 16.dp, vertical = 14.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {

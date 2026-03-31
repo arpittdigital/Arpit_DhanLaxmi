@@ -77,6 +77,7 @@ fun BankDetailsScreen(navController: NavController) {
             modifier = Modifier
                 .fillMaxWidth()
                 .background(Brush.horizontalGradient(listOf(YellowMain, YellowLight)))
+                .statusBarsPadding()
                 .padding(horizontal = 16.dp, vertical = 14.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
@@ -217,6 +218,7 @@ fun WithdrawalMoneyScreen(navController: NavController) {
             modifier = Modifier
                 .fillMaxWidth()
                 .background(Brush.horizontalGradient(listOf(YellowMain, YellowLight)))
+                .statusBarsPadding()
                 .padding(horizontal = 16.dp, vertical = 14.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
@@ -319,7 +321,6 @@ fun WithdrawalMoneyScreen(navController: NavController) {
 
                         when (savedBankState) {
                             is BankDetailsViewModel.SavedBankState.Loading -> {
-                                // API call chal rahi hai — loader dikhao
                                 Box(modifier = Modifier.fillMaxWidth().padding(vertical = 16.dp),
                                     contentAlignment = Alignment.Center) {
                                     CircularProgressIndicator(color = YellowMain,
@@ -368,6 +369,10 @@ fun WithdrawalMoneyScreen(navController: NavController) {
                     val parsedAmount = amount.trim().toIntOrNull() ?: 0
                     if (parsedAmount < 100) {
                         Toast.makeText(context, "Minimum withdrawal amount is ₹100", Toast.LENGTH_SHORT).show()
+                        return@Button
+                    }
+                    if (phoneNumber.trim().length != 10 || !phoneNumber.trim().all { it.isDigit() }) {
+                        Toast.makeText(context, "Please enter a valid 10-digit mobile number", Toast.LENGTH_SHORT).show()
                         return@Button
                     }
                     val apiMode      = paymentModes[selectedMode] ?: selectedMode.lowercase()
@@ -431,6 +436,7 @@ fun WithdrawalHistoryScreen(navController: NavController) {
             modifier = Modifier
                 .fillMaxWidth()
                 .background(Brush.horizontalGradient(listOf(YellowMain, YellowLight)))
+                .statusBarsPadding()
                 .padding(horizontal = 16.dp, vertical = 14.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {

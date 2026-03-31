@@ -50,6 +50,7 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.bmdu.dhanlaxmi.ui.theme.GoldTheme
 import com.bmdu.dhanlaxmi.viewModel.PaymentViewModel
 import com.bmdu.dhanlaxmi.viewModel.ProfileViewModel
 import com.google.zxing.BarcodeFormat
@@ -168,7 +169,8 @@ fun QRPaymentScreen(
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .background(Color(0xFFF3EE06))
+                .background(brush = GoldTheme.metallicBrush)
+                .statusBarsPadding()
                 .padding(horizontal = 16.dp, vertical = 14.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {

@@ -4,13 +4,6 @@ import android.content.Intent
 import android.net.Uri
 import android.util.Log
 import android.widget.Toast
-import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
-import androidx.compose.animation.slideInHorizontally
-import androidx.compose.animation.slideInVertically
-import androidx.compose.animation.slideOutHorizontally
-import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -26,7 +19,6 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.TrendingDown
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -96,7 +88,7 @@ val drawerMenuItems = listOf(
     DrawerMenuItem(Icons.Filled.List,           "Bid History",     "history"),
     DrawerMenuItem(Icons.Filled.AccountBalance, "Banking Details", "bank_details"),
     DrawerMenuItem(Icons.Filled.StarRate,       "Game Rate",       "game_rate"),
-    DrawerMenuItem(Icons.Filled.ContactPage,    "Contact Us",      "contact_us"),
+//    DrawerMenuItem(Icons.Filled.ContactPage,    "Contact Us",      "contact_us"),
 //    DrawerMenuItem(Icons.Filled.PlayCircle,     "How to Play",     "how_to_play"),
     DrawerMenuItem(Icons.Filled.Lock,           "Privacy Policy",  "privacy_policy"),
     DrawerMenuItem(Icons.Filled.Logout,         "Logout",          "logout"),
@@ -141,7 +133,7 @@ fun HomeScreen(navController: NavController,profileViewModel : ProfileViewModel)
         else -> ""
     }
     val userPoints = when (val s = state) {
-        is ProfileViewModel.ProfileState.Success -> s.data.data?.wallet_amount ?: 0
+        is ProfileViewModel.ProfileState.Success -> s.data.data?.wallet_amount?.toFloat()?.toInt() ?: 0
         else -> 0
     }
 
@@ -709,10 +701,12 @@ fun ApiGameCard(game: GameData, onCardClick: () -> Unit = {}, onPlayClick: () ->
 fun TopBar(onMenuClick: () -> Unit, navController: NavController,profileViewModel : ProfileViewModel) {
     val state by profileViewModel.profileState.collectAsState()
 
-    val amount = when (state) {
+    val amount = when (val s = state) {
         is ProfileViewModel.ProfileState.Success ->
-            (state as ProfileViewModel.ProfileState.Success).data.data?.wallet_amount?.toString() ?: "0"
-        else -> "0"
+            s.data.data?.wallet_amount?.let {
+                String.format("%.2f", it)  // 2284.55 → "2284.55"
+            } ?: "0.00"
+        else -> "0.00"
     }
 
     Row(
@@ -767,57 +761,6 @@ fun TopBar(onMenuClick: () -> Unit, navController: NavController,profileViewMode
 // ══════════════════════════════════════════════════════════
 //  QUICK ACTION BUTTONS
 // ══════════════════════════════════════════════════════════
-
-@Composable
-fun QuickActionButtons(navController: NavController) {
-    Card(
-        modifier  = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 16.dp)
-            .offset(y = (-36).dp),   // overlap hero — reduced gap
-        shape     = RoundedCornerShape(16.dp),
-        colors    = CardDefaults.cardColors(containerColor = CardGreen),
-        elevation = CardDefaults.cardElevation(8.dp)
-    ) {
-        Box(Modifier.fillMaxWidth().height(2.dp).background(brush = GoldTheme.metallicBrushHorizontal))
-        Row(
-            modifier              = Modifier.fillMaxWidth().padding(vertical = 16.dp, horizontal = 4.dp),
-            horizontalArrangement = Arrangement.SpaceEvenly,
-            verticalAlignment     = Alignment.CenterVertically
-        ) {
-            QuickActionButton(
-                icon     = painterResource(id = R.drawable.telegramimg),
-                label    = "Telegram",
-                iconTint = Color.Unspecified,
-                onClick  = {}
-            )
-            VDivider()
-            QuickActionButton(
-                icon     = painterResource(id = R.drawable.whatsapplogo),
-                label    = "WhatsApp",
-                iconTint = Color.Unspecified,
-                onClick  = {}
-            )
-            VDivider()
-
-            QuickActionButton(
-                icon     = Icons.Default.AccountBalanceWallet,
-                label    = "Add Funds",
-                iconTint = Color(0xFF6EE98A),
-                onClick  = { navController.navigate("add_money") }
-            )
-
-            VDivider()
-
-            QuickActionButton(
-                icon     = Icons.Default.CurrencyRupee,
-                label    = "Withdraw",
-                iconTint = Color(0xFFFC8181),
-                onClick  = { navController.navigate("withdrawal") }
-            )
-        }
-    }
-}
 
 @Composable
 private fun VDivider() {

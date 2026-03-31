@@ -68,8 +68,6 @@ fun HistoryScreen(
                 modifier = Modifier
                     .align(Alignment.CenterStart)
                     .size(32.dp)
-                    .clip(CircleShape)
-                    .background(Color.Black.copy(alpha = 0.15f))
             ) {
                 Icon(
                     imageVector        = Icons.Default.ArrowBack,

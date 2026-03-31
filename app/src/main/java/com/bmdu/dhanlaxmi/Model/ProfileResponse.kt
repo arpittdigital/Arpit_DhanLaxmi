@@ -10,7 +10,7 @@ data class ProfileData(
     val password: String,
     val phone: String?,
     val customer_id: String,
-    val wallet_amount: Int?
+    val wallet_amount: Double?
 )
 
 

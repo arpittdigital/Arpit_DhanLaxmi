@@ -52,7 +52,7 @@ fun DelhiBazarScreen(
     val context = LocalContext.current
     val profileState by profileViewModel.profileState.collectAsState()
     val walletBalance = when (val s = profileState) {
-        is ProfileViewModel.ProfileState.Success -> {val amt = s.data.data?.wallet_amount ?: 0
+        is ProfileViewModel.ProfileState.Success -> {val amt = s.data.data?.wallet_amount?.toFloat()?.toInt() ?: 0
             Log.d("WALLET", "walletBalance updated = $amt") // ← add this
             amt
         }
