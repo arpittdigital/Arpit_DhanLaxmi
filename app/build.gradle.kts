@@ -8,11 +8,11 @@ plugins {
 }
 
 android {
-    namespace = "com.bmdu.dhanlaxmi"
+    namespace = "com.bmdu.SethGMatka"
     compileSdk = 36
 
     defaultConfig {
-        applicationId = "com.bmdu.dhanlaxmi"
+        applicationId = "com.bmdu.SethGMatka"
         minSdk = 27
         targetSdk = 36
         versionCode = 1

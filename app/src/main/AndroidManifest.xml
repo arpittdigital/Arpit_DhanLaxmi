@@ -12,10 +12,10 @@
         android:allowBackup="true"
         android:dataExtractionRules="@xml/data_extraction_rules"
         android:fullBackupContent="@xml/backup_rules"
-        android:icon="@mipmap/ic_launcher"
+        android:icon="@mipmap/seth_g_matka"
         android:usesCleartextTraffic="true"
         android:label="@string/app_name"
-        android:roundIcon="@mipmap/ic_launcher_round"
+        android:roundIcon="@mipmap/seth_g_matka"
         android:supportsRtl="true"
         android:theme="@style/Theme.DhanLaxmi">
 
@@ -23,11 +23,20 @@
             android:name=".MainActivity"
             android:exported="true"
             android:launchMode="singleTop"
-            android:label="@string/app_name"
-            android:theme="@style/Theme.DhanLaxmi">
+            android:label="Seth G Matka"
+            android:theme="@style/Theme.DhanLaxmi"
+            tools:ignore="MissingClass">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data
+                    android:scheme="sethgmatka"
+                    android:host="payment" />
             </intent-filter>
         </activity>
 
@@ -48,7 +57,7 @@
         <!--  ADD: Default notification icon (must be a white/transparent icon) -->
         <meta-data
             android:name="com.google.firebase.messaging.default_notification_icon"
-            android:resource="@mipmap/ic_launcher" />
+            android:resource="@mipmap/seth_g_matka" />
 
         <!--  ADD: Default notification color -->
         <meta-data
