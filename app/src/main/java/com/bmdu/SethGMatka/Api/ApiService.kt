@@ -20,7 +20,6 @@ import com.bmdu.SethGMatka.Model.ProfileResponse
 import com.bmdu.SethGMatka.Model.ResultResponse
 import com.bmdu.SethGMatka.Model.SignupRequest
 import com.bmdu.SethGMatka.Model.SignupResponse
-import com.bmdu.SethGMatka.Model.VerifyOtpRequest
 import com.bmdu.SethGMatka.Model.WinningHistoryResponse
 import com.bmdu.SethGMatka.Model.addfundsRequest
 import com.bmdu.SethGMatka.Model.addfundsResponse
@@ -32,9 +31,12 @@ import com.bmdu.SethGMatka.Model.playBahar
 import com.bmdu.SethGMatka.Model.playBaharResponse
 import com.bmdu.SethGMatka.Model.resetPasswordRequest
 import com.bmdu.SethGMatka.Model.resetPasswordResponse
-import com.bmdu.SethGMatka.Model.verifyOtpResponse
 import com.bmdu.SethGMatka.Model.withdrawalRequest
 import com.bmdu.SethGMatka.Model.withdrawalResponse
+import com.bmdu.SethGMatka.otp.SendOtpRequest
+import com.bmdu.SethGMatka.otp.SendOtpResponse
+import com.bmdu.SethGMatka.otp.VerifyOtpRequest
+import com.bmdu.SethGMatka.otp.VerifyOtpResponse
 import com.google.gson.JsonObject
 import retrofit2.Response
 import retrofit2.http.Body
@@ -64,10 +66,14 @@ interface ApiService {
         @Body forgotRequest: ForgotRequest
     ): Response<forgotResponse>
 
+    @POST("api/send-otp")
+    suspend fun sendOtp(
+        @Body request: SendOtpRequest
+    ): Response<SendOtpResponse>
     @POST("api/verify-otp")
     suspend fun verifyOtp(
-        @Body verifyOtpRequest: VerifyOtpRequest
-    ): Response<verifyOtpResponse>
+        @Body request: VerifyOtpRequest
+    ): Response<VerifyOtpResponse>
 
     @POST("api/reset-password")
     suspend fun resetPassword(

@@ -1,5 +1,6 @@
 package com.bmdu.SethGMatka.Dashboard
 
+import android.content.Context
 import android.content.Intent
 import android.net.Uri
 import android.util.Log
@@ -151,7 +152,13 @@ fun HomeScreen(navController: NavController,profileViewModel : ProfileViewModel)
         LogoutConfirmDialog(
             onConfirm = {
                 showLogoutDialog = false
-                navController.navigate("login") { popUpTo("home") { inclusive = true } }
+                // Clear auth token from prefs
+                val prefs = context.getSharedPreferences("auth_prefs", Context.MODE_PRIVATE)
+                prefs.edit().remove("auth_token").apply()
+                // Navigate to login, wipe entire back stack
+                navController.navigate("login") {
+                    popUpTo(0) { inclusive = true }
+                }
             },
             onCancel = { showLogoutDialog = false }
         )
@@ -813,9 +820,9 @@ fun BottomNavigationBar(currentRoute: String, navController: NavController) {
 
     val shareMessage = """
         घर बैठे गेम प्ले करो अपने यार दोस्तों को शेयर करो
-        सबसे ट्रस्टेड और सबसे ईमानदार धन लक्ष्मी एप्लीकेशन
+        सबसे ट्रस्टेड और सबसे ईमानदार सेठ जी मटका एप्लीकेशन
         960 रेट ✅
-        https://bmdublog.com/seth_ji_matka/  
+        https://sethgmatkagame.com/  
     """.trimIndent()
 
     NavigationBar(

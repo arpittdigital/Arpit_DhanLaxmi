@@ -70,7 +70,8 @@ class GameViewModel : ViewModel() {
         gameId: Int,
         playType: String,
         number: String,
-        amount: Int
+        amount: Int,
+        palti: Boolean
     ) {
         viewModelScope.launch {
             _playState.value = PlayState.Loading
@@ -86,7 +87,8 @@ class GameViewModel : ViewModel() {
                     playRequest = PlayRequest(
                         play_type = playType,
                         number = number,
-                        amount = amount
+                        amount = amount,
+                        palti = palti
                     )
                 )
 

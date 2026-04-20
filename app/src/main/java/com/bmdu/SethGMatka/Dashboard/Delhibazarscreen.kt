@@ -233,6 +233,7 @@ fun DelhiBazarScreen(
             var enteredDigits by remember { mutableStateOf("") }
             var enteredAmount by remember { mutableStateOf("") }
             var copyPasteResetKey by remember { mutableStateOf(0) }
+            var palti by remember { mutableStateOf(false) }
             // Content takes all remaining space
             Box(modifier = Modifier.weight(1f)) {
                 when (selectedTab) {
@@ -252,11 +253,12 @@ fun DelhiBazarScreen(
                         }
                     )
                     2 -> key(copyPasteResetKey) {
-                        CopyPasteScreen(
+                        com.bmdu.SethGMatka.presentation.CopyPasteScreen(
                             amountMap = copyPasteAmountMap,
-                            onSubmit = { digits, amount ->
+                            onSubmit = { digits, amount, paltiValue ->
                                 enteredDigits = digits
                                 enteredAmount = amount
+                                palti = paltiValue
                             }
                         )
                     }
@@ -313,7 +315,8 @@ fun DelhiBazarScreen(
                                         gameId    = gameId,
                                         playType  = playTypes[selectedTab],
                                         number    = enteredDigits,
-                                        amount    = enteredAmount.toIntOrNull() ?: 0
+                                        amount    = enteredAmount.toIntOrNull() ?: 0,
+                                        palti     = false
                                     )
                                 } else if (selectedTab == 2) {
                                     // Copy Paste — sends sum of all entries
@@ -322,7 +325,8 @@ fun DelhiBazarScreen(
                                         gameId    = gameId,
                                         playType  = playTypes[selectedTab],
                                         number    = enteredDigits,
-                                        amount    = totalAmount
+                                        amount    = enteredAmount.toIntOrNull() ?: 0,
+                                        palti     = palti
                                     )
                                 }
 
@@ -685,7 +689,8 @@ private fun JodiScreen(
                                     gameId = gameId,
                                     playType = "jodi",
                                     number = number.toString().padStart(2, '0'),
-                                    amount = amt
+                                    amount = amt,
+                                    palti = false
                                 )
                             }
                         }
@@ -974,7 +979,7 @@ private fun CrossingScreen(amountMap: MutableMap<Int, String>,onSubmit: (String,
 
 
 @Composable
-private fun CopyPasteScreen(amountMap: SnapshotStateMap<Int, String>,onSubmit: (String, String) -> Unit) {
+private fun CopyPasteScreen(amountMap: SnapshotStateMap<Int, String>,onSubmit: (String, String, Boolean) -> Unit) {
     val yellowBtn = Color(0xFFFDD835)
     val bgColor = Color(0xFFFFFFFF)
     val textColor = Color(0xFF1B1B1B)
@@ -1090,7 +1095,7 @@ private fun CopyPasteScreen(amountMap: SnapshotStateMap<Int, String>,onSubmit: (
                             nonPaltiAmountMap[digit] = amountInput
                         }
                         syncToParent()  // ← sync to parent
-                        onSubmit(digitInput, amountInput)
+                        onSubmit(digitInput, amountInput, withPalti)
                         digitInput = ""
                         amountInput = ""
                     }

@@ -466,7 +466,7 @@ fun VerifyOtpScreen(navController: NavController,
                     onClick = {
                         val fullOtp = otp1 + otp2 + otp3 + otp4
                         if (fullOtp.length == 4) {
-                            viewModel.verifyOtp(fullOtp)
+//                            viewModel.verifyOtp(fullOtp)
                         } else {
                             Toast.makeText(context, "Please enter complete OTP", Toast.LENGTH_SHORT).show()
                         }

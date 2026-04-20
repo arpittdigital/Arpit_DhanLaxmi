@@ -54,6 +54,7 @@ dependencies {
     implementation(libs.androidx.compose.runtime)
     implementation(libs.androidx.lifecycle.viewmodel.ktx)
     implementation(libs.androidx.browser)
+    implementation(libs.play.services.auth.api.phone)
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)

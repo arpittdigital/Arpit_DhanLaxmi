@@ -248,7 +248,7 @@ fun QRPaymentScreen(
                         }
                     }
 
-                    Text("Pay ₹$amount", fontSize = 26.sp, fontWeight = FontWeight.Bold, color = Color(0xFFF3EE06))
+                    Text("Pay ₹$amount", fontSize = 26.sp, fontWeight = FontWeight.Bold, color = Color(0xFF002800))
                     Spacer(Modifier.height(8.dp))
                     Text("Choose payment method", fontSize = 13.sp, color = Color.White.copy(alpha = 0.8f))
                     Spacer(Modifier.height(32.dp))

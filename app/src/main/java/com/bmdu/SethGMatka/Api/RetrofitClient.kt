@@ -17,7 +17,7 @@ import java.util.concurrent.TimeUnit
 object RetrofitClient {
 
     // BASE_URL
-    private const val BASE_URL = "https://bmdublog.com/seth_ji_matka/"
+    private const val BASE_URL = "https://sethgmatkagame.com/"
 
     private val gson = GsonBuilder().setLenient().create()
 

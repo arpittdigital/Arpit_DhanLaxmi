@@ -24,7 +24,8 @@ data class GameData(
 data class PlayRequest(
     val play_type: String,
     val number: String,
-    val amount: Int
+    val amount: Int,
+    val palti: Boolean
 )
 
 data class PlayResponse(

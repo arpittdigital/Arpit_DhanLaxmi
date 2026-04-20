@@ -13,6 +13,7 @@ runtime = "1.10.3"
 lifecycleViewmodelKtx = "2.10.0"
 browser = "1.9.0"
 firebaseMessaging = "24.0.0"
+playServicesAuthApiPhone = "18.3.0"
 
 [libraries]
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
@@ -34,6 +35,7 @@ androidx-compose-runtime = { group = "androidx.compose.runtime", name = "runtime
 androidx-lifecycle-viewmodel-ktx = { group = "androidx.lifecycle", name = "lifecycle-viewmodel-ktx", version.ref = "lifecycleViewmodelKtx" }
 androidx-browser = { group = "androidx.browser", name = "browser", version.ref = "browser" }
 firebase-messaging = { group = "com.google.firebase", name = "firebase-messaging", version.ref = "firebaseMessaging" }
+play-services-auth-api-phone = { group = "com.google.android.gms", name = "play-services-auth-api-phone", version.ref = "playServicesAuthApiPhone" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }

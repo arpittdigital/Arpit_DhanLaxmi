@@ -3,19 +3,18 @@ package com.bmdu.SethGMatka.viewModel
 import android.app.Application
 import android.content.Context
 import android.util.Log
-import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.bmdu.SethGMatka.Api.RetrofitClient
 import com.bmdu.SethGMatka.Model.ForgotRequest
 import com.bmdu.SethGMatka.Model.LoginRequest
 import com.bmdu.SethGMatka.Model.SignupRequest
-import com.bmdu.SethGMatka.Model.VerifyOtpRequest
 import com.bmdu.SethGMatka.Model.resetPasswordRequest
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
-import androidx.core.content.edit
 import androidx.lifecycle.AndroidViewModel
+import com.bmdu.SethGMatka.otp.SendOtpRequest
+import com.bmdu.SethGMatka.otp.VerifyOtpRequest
 import com.google.firebase.messaging.FirebaseMessaging
 import kotlinx.coroutines.tasks.await
 
@@ -34,6 +33,8 @@ class AuthViewModel(application: Application) : AndroidViewModel(application) {
 
     sealed class AuthState {
         object Loading : AuthState()
+        data class OtpSent(val message: String) : AuthState()
+        data class OtpVerified(val message: String) : AuthState()
         data class Error(val message: String) : AuthState()
         data class Success(val message: String) : AuthState()
     }
@@ -172,34 +173,92 @@ class AuthViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     //  Verify OTP
-    fun verifyOtp(otp: String) {
-        Log.d(TAG, "─────────────────────────────────")
-        Log.d(TAG, "verifyOtp() → API CALL START")
-        Log.d(TAG, "verifyOtp() → Request Params: otp=$otp")
+    fun sendOtp(mobile: String) {
         viewModelScope.launch {
-            _authState.value = AuthState.Loading
+            _authState.value = com.bmdu.SethGMatka.viewModel.AuthViewModel.AuthState.Loading
             try {
-                Log.d(TAG, "verifyOtp() → Hitting endpoint: POST api/verify-otp")
-                val response = RetrofitClient.instance.verifyOtp(VerifyOtpRequest(otp))
-                Log.d(TAG, "verifyOtp() → Response Code: ${response.code()}")
-                Log.d(TAG, "verifyOtp() → Response Body: ${response.body()}")
-                if (response.isSuccessful) {
-                    Log.d(TAG, "verifyOtp() → ✅ SUCCESS: OTP verified")
-                    _authState.value = AuthState.Success("OTP verified successfully")
-                } else {
-                    Log.e(
-                        TAG,
-                        "verifyOtp() → ❌ FAILED: HTTP ${response.code()} | ErrorBody: ${
-                            response.errorBody()?.string()
-                        }"
+                val response = RetrofitClient.instance.sendOtp(
+                    SendOtpRequest(phone = formatMobile(mobile))
+                )
+                if (response.isSuccessful && response.body()?.success == true) {
+                    _authState.value = com.bmdu.SethGMatka.viewModel.AuthViewModel.AuthState.Success(
+                        response.body()?.message ?: "OTP sent successfully"
                     )
-                    _authState.value = AuthState.Error("Invalid OTP. Please try again")
+                } else {
+                    // Parse error body JSON safely, fallback to plain message
+                    val errorMsg = parseErrorMessage(response.errorBody()?.string())
+                        ?: response.body()?.message
+                        ?: "Failed to send OTP"
+                    _authState.value = com.bmdu.SethGMatka.viewModel.AuthViewModel.AuthState.Error(errorMsg)
                 }
             } catch (e: Exception) {
-                Log.e(TAG, "verifyOtp() → ❌ EXCEPTION: ${e.localizedMessage}", e)
-                _authState.value = AuthState.Error(e.localizedMessage ?: "Something went wrong")
+                _authState.value = com.bmdu.SethGMatka.viewModel.AuthViewModel.AuthState.Error(e.localizedMessage ?: "Something went wrong")
             }
         }
+    }
+
+    fun verifyOtp(mobile: String, otp: String) {
+        viewModelScope.launch {
+            _authState.value = com.bmdu.SethGMatka.viewModel.AuthViewModel.AuthState.Loading
+            try {
+                val fcmToken = getFcmToken()
+
+                val response = RetrofitClient.instance.verifyOtp(
+                    VerifyOtpRequest(
+                        phone     = formatMobile(mobile),
+                        otp       = otp.trim(),
+                        fcm_token = fcmToken
+                    )
+                )
+
+                if (response.isSuccessful && response.body()?.success == true) {
+                    val prefs = appContext.getSharedPreferences("auth_prefs", Context.MODE_PRIVATE)
+
+                    // ✅ Save the REAL token from response, not "logged_in"
+                    val realToken = response.body()?.token
+                    if (!realToken.isNullOrBlank()) {
+                        prefs.edit().putString("auth_token", realToken).apply()
+                        Log.d(com.bmdu.SethGMatka.viewModel.AuthViewModel.Companion.TAG, "verifyOtp() → ✅ Real token saved: $realToken")
+                    } else {
+                        // Token not in verifyOtp response — it may already be saved from a
+                        // previous step. Log a warning but don't overwrite with "logged_in".
+                        Log.w(com.bmdu.SethGMatka.viewModel.AuthViewModel.Companion.TAG, "verifyOtp() → ⚠️ No token in response body. Check API.")
+                    }
+
+                    _authState.value = com.bmdu.SethGMatka.viewModel.AuthViewModel.AuthState.Success(
+                        response.body()?.message ?: "OTP verified"
+                    )
+                } else {
+                    val errorMsg = response.body()?.message
+                        ?: parseErrorMessage(response.errorBody()?.string())
+                        ?: "Invalid OTP"
+                    _authState.value = com.bmdu.SethGMatka.viewModel.AuthViewModel.AuthState.Error(errorMsg)
+                }
+            } catch (e: Exception) {
+                _authState.value = com.bmdu.SethGMatka.viewModel.AuthViewModel.AuthState.Error(e.localizedMessage ?: "Something went wrong")
+            }
+        }
+    }
+
+    // ── parseErrorMessage — paste this too if not already in your AuthViewModel ──
+    private fun parseErrorMessage(errorJson: String?): String? {
+        if (errorJson.isNullOrBlank()) return null
+        return try {
+            org.json.JSONObject(errorJson).optString("message", "").ifBlank { null }
+        } catch (e: Exception) {
+            null
+        }
+    }
+    fun formatMobile(mobile: String): String {
+        var cleaned = mobile.trim()
+
+        if (cleaned.startsWith("+91")) {
+            cleaned = cleaned.substring(3)
+        } else if (cleaned.startsWith("91") && cleaned.length > 10) {
+            cleaned = cleaned.substring(2)
+        }
+
+        return cleaned
     }
 
     // ✅ Reset Password

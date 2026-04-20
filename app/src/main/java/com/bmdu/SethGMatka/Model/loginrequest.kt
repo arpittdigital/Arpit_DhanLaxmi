@@ -30,14 +30,14 @@ data class forgotResponse(
     val otp: String
 )
 
-data class VerifyOtpRequest(
-    val otp: String
-)
-
-data class verifyOtpResponse(
-    val success: Boolean,
-    val message: String
-)
+//data class VerifyOtpRequest(
+//    val otp: String
+//)
+//
+//data class verifyOtpResponse(
+//    val success: Boolean,
+//    val message: String
+//)
 
 data class resetPasswordRequest(
     val mobile: String,
