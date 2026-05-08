@@ -51,7 +51,7 @@ fun HistoryScreen(
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color(0xFFFFE500))
+            .background(Color(0xFFC89738))
     ) {
 
         // ── Top bar ──

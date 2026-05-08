@@ -45,7 +45,7 @@ fun AddMoneyScreen(navController: NavController) {
         modifier = Modifier
             .fillMaxSize()
             .background(
-                Color(0xFFFFE500)
+                Color(0xFFC89738)
             )
     ) {
 

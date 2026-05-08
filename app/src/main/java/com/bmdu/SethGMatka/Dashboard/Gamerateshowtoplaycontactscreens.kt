@@ -10,6 +10,8 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
@@ -19,15 +21,17 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import com.bmdu.SethGMatka.R
+import com.bmdu.SethGMatka.viewModel.GameRatesViewModel
 
 // ─── Shared Colors ─────────────────────────────────────────
 private val YellowMain  = Color(0xFFD4A800)
 private val YellowLight = Color(0xFFF0C000)
 private val GreenMid    = Color(0xFF006400)
-private val CardDark    = Color(0xFF0A2E0A)
-private val RowBg       = Color(0xFF0D1F0D)
+//private val CardDark    = Color(0xFF0A2E0A)
+val RowBg       = Color(0xFF0D1F0D)
 
 // ══════════════════════════════════════════════════════════
 //  SCREEN 1 — GAME RATES
@@ -36,23 +40,20 @@ private val RowBg       = Color(0xFF0D1F0D)
 @Composable
 fun GameRatesScreen(navController: NavController) {
 
-    val rates = listOf(
-        "Haruf Andar "  to "10-96",
-        "Haruf Bahar"  to "10-96",
-        "Jodi Digit"   to "10-960"
-    )
+    val viewModel: GameRatesViewModel = viewModel(factory = GameRatesViewModel.Factory)
+    val gamePrices by viewModel.gamePrices.collectAsState()
+    val isLoading by viewModel.isLoading.collectAsState()
+    val error by viewModel.error.collectAsState()
 
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color(0xFFFFE500))
+            .background(Color(0xFFC89738))
     ) {
-        // ── Top Bar ─────────────────────────────────────
         TopBar(title = "Game Rates", onBack = { navController.popBackStack() })
 
         Spacer(Modifier.height(20.dp))
 
-        // ── Rates Card ──────────────────────────────────
         Card(
             modifier  = Modifier
                 .fillMaxWidth()
@@ -82,22 +83,48 @@ fun GameRatesScreen(navController: NavController) {
                     )
                 }
 
-                // Rate Rows
-                rates.forEachIndexed { index, (label, rate) ->
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .background(if (index % 2 == 0) CardDark else RowBg)
-                            .padding(horizontal = 20.dp, vertical = 18.dp),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment     = Alignment.CenterVertically
-                    ) {
-                        Text(label, color = Color.White, fontSize = 15.sp)
-                        Text(rate,  color = Color.White, fontSize = 15.sp, fontWeight = FontWeight.Bold)
+                when {
+                    isLoading -> {
+                        Box(
+                            modifier = Modifier.fillMaxWidth().padding(40.dp),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            CircularProgressIndicator(color = Color.White)
+                        }
                     }
 
-                    if (index < rates.lastIndex)
-                        HorizontalDivider(color = Color.White.copy(alpha = 0.05f), thickness = 1.dp)
+                    error != null -> {
+                        Box(
+                            modifier = Modifier.fillMaxWidth().padding(40.dp),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text(error ?: "Error", color = Color.Red)
+                        }
+                    }
+
+                    else -> {
+                        gamePrices.forEachIndexed { index, price ->
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .background(if (index % 2 == 0) CardDark else RowBg)
+                                    .padding(horizontal = 20.dp, vertical = 18.dp),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment     = Alignment.CenterVertically
+                            ) {
+                                Text(price.game_name, color = Color.White, fontSize = 15.sp)
+                                Text(
+                                    "${price.price_per_10}-${price.grand_amount}",
+                                    color      = Color.White,
+                                    fontSize   = 15.sp,
+                                    fontWeight = FontWeight.Bold
+                                )
+                            }
+
+                            if (index < gamePrices.lastIndex)
+                                HorizontalDivider(color = Color.White.copy(alpha = 0.05f), thickness = 1.dp)
+                        }
+                    }
                 }
             }
         }
@@ -264,7 +291,7 @@ fun ContactUsScreen(navController: NavController) {
 // ══════════════════════════════════════════════════════════
 
 @Composable
-private fun TopBar(title: String, onBack: () -> Unit) {
+fun TopBar(title: String, onBack: () -> Unit) {
     Row(
         modifier = Modifier
             .fillMaxWidth()

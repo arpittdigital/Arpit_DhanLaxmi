@@ -70,7 +70,7 @@ fun BankDetailsScreen(navController: NavController) {
 
     DisposableEffect(Unit) { onDispose { viewModel.resetState() } }
 
-    Column(modifier = Modifier.fillMaxSize().background(Color(0xFFFFE500))) {
+    Column(modifier = Modifier.fillMaxSize().background(Color(0xFFC89738))) {
 
         // Top Bar
         Row(

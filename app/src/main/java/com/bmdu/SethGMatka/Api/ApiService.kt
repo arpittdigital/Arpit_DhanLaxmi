@@ -7,6 +7,7 @@ import com.bmdu.SethGMatka.Model.CreatePaymentRequest
 import com.bmdu.SethGMatka.Model.CreatePaymentResponse
 import com.bmdu.SethGMatka.Model.ForgotRequest
 import com.bmdu.SethGMatka.Model.GETBankDetailsResponse
+import com.bmdu.SethGMatka.Model.GamePricesResponse
 import com.bmdu.SethGMatka.Model.GameResponse
 import com.bmdu.SethGMatka.Model.HistoryResponse
 import com.bmdu.SethGMatka.Model.LoginRequest
@@ -20,6 +21,7 @@ import com.bmdu.SethGMatka.Model.ProfileResponse
 import com.bmdu.SethGMatka.Model.ResultResponse
 import com.bmdu.SethGMatka.Model.SignupRequest
 import com.bmdu.SethGMatka.Model.SignupResponse
+import com.bmdu.SethGMatka.Model.TransactionResponse
 import com.bmdu.SethGMatka.Model.WinningHistoryResponse
 import com.bmdu.SethGMatka.Model.addfundsRequest
 import com.bmdu.SethGMatka.Model.addfundsResponse
@@ -54,7 +56,8 @@ interface ApiService {
     suspend fun signup(
         @Body signupRequest: SignupRequest
     ): Response<SignupResponse>
-
+    @GET("api/game-prices")
+    suspend fun getGamePrices(): Response<GamePricesResponse>
 
     @POST("api/login")
     suspend fun login(
@@ -86,7 +89,10 @@ interface ApiService {
         @Body bankdetailsRequest: BankDetailsRequest
     ): Response<BankdetailsResponse>
 
-
+    @GET("api/wallet/transactions")
+    suspend fun getTransactions(
+        @Header("Authorization") token: String
+    ): Response<TransactionResponse>
     @POST("api/payment-success")
     suspend fun confirmPayment(
         @Header("Authorization") token: String,
