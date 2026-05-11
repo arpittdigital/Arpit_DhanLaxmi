@@ -3,6 +3,7 @@ package com.bmdu.SethGMatka
 import android.Manifest
 import android.content.Context
 import android.content.Intent
+import android.net.Uri
 import android.os.Build
 import android.os.Bundle
 import android.util.Log
@@ -12,9 +13,12 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.animation.EnterTransition
+import androidx.compose.animation.ExitTransition
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
@@ -55,6 +59,9 @@ class MainActivity : ComponentActivity() {
 
 
             val context = LocalContext.current
+            val sharedPref = context.getSharedPreferences("auth_prefs", Context.MODE_PRIVATE)
+            val token = sharedPref.getString("auth_token", "") ?: ""
+            val bearerToken = if (token?.startsWith("Bearer ") == true) token else "Bearer $token"
             val navController = rememberNavController()
             val authViewModel: AuthViewModel = viewModel()
 
@@ -67,9 +74,6 @@ class MainActivity : ComponentActivity() {
 
                 else -> 0
             }
-
-            val sharedPref = context.getSharedPreferences("auth_prefs", Context.MODE_PRIVATE)
-            val token = sharedPref.getString("auth_token", "") ?: ""
 
             LaunchedEffect(token) {
                 if (token.isNotBlank()) {
@@ -112,6 +116,13 @@ class MainActivity : ComponentActivity() {
                     NavHost(
                         navController = navController,
                         startDestination = "splash",
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .background(PageNavy), // ← ADD THIS
+                        enterTransition = { EnterTransition.None },
+                        exitTransition = { ExitTransition.None },
+                        popEnterTransition = { EnterTransition.None },
+                        popExitTransition = { ExitTransition.None }
 //                        enterTransition = {
 //                            fadeIn(animationSpec = tween(300))
 //                        },
@@ -154,19 +165,39 @@ class MainActivity : ComponentActivity() {
                             }
                             composable("add_money") { AddMoneyScreen(navController) }
                             composable("withdrawal") { WithdrawalMoneyScreen(navController) }
-                            composable(
-                                route = "qr_payment/{amount}",
-                                arguments = listOf(
-                                    navArgument("amount") { type = NavType.IntType }
-                                )
-                            ) { backStackEntry ->
-                                val amount = backStackEntry.arguments?.getInt("amount") ?: 0
-                                QRPaymentScreen(
-                                    navController = navController,
-                                    amount = amount,
-                                    profileViewModel = profileViewModel
-                                )
-                            }
+//                            composable(
+//                                route = "qr_payment/{amount}",
+//                                arguments = listOf(
+//                                    navArgument("amount") { type = NavType.IntType }
+//                                )
+//                            ) { backStackEntry ->
+//                                val amount = backStackEntry.arguments?.getInt("amount") ?: 0
+//                                QRPaymentScreen(
+//                                    navController = navController,
+//                                    amount = amount,
+//                                    profileViewModel = profileViewModel
+//                                )
+//                            }
+
+                        composable(
+                            route = "qr_display/{bhimLink}/{checkLink}/{orderId}/{amount}",
+                            arguments = listOf(
+                                navArgument("bhimLink") { type = NavType.StringType },
+                                navArgument("checkLink") { type = NavType.StringType },
+                                navArgument("orderId") { type = NavType.StringType },
+                                navArgument("amount") { type = NavType.IntType }
+                            )
+                        ) { backStackEntry ->
+                            QRDisplayScreen(
+                                navController = navController,
+                                bhimLink = Uri.decode(backStackEntry.arguments?.getString("bhimLink") ?: ""),
+                                checkLink = Uri.decode(backStackEntry.arguments?.getString("checkLink") ?: ""),
+                                orderId = Uri.decode(backStackEntry.arguments?.getString("orderId") ?: ""),
+                                amount = backStackEntry.arguments?.getInt("amount") ?: 0,
+                                profileViewModel = profileViewModel,
+                                bearerToken = bearerToken
+                            )
+                        }
                             composable("bank_details") { BankDetailsScreen(navController) }
                             composable("winning_history") {
                                 val context = LocalContext.current
@@ -190,6 +221,9 @@ class MainActivity : ComponentActivity() {
                             composable("chart") { ChartScreen(navController) }
                             composable("result") { ResultScreen(navController) }
                             composable("withdraw_history") { WithdrawalHistoryScreen(navController) }
+                        composable("transactions") {
+                            TransactionScreen(navController, token)
+                        }
                             composable("how_to_play") { HowToPlayScreen(navController) }
                             composable("game_rate") { GameRatesScreen(navController) }
                             composable("contact_us") { ContactUsScreen(navController) }

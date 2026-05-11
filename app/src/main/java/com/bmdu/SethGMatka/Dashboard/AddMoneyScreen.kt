@@ -1,5 +1,6 @@
 package com.bmdu.SethGMatka.Dashboard
 
+import android.net.Uri
 import android.util.Log
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -22,8 +23,10 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import com.bmdu.SethGMatka.ui.theme.GoldTheme
+import com.bmdu.SethGMatka.viewModel.PaymentViewModel
 
 private const val ADD_MONEY_TAG = "AddMoneyScreen"
 
@@ -31,21 +34,37 @@ private const val ADD_MONEY_TAG = "AddMoneyScreen"
 fun AddMoneyScreen(navController: NavController) {
 
     var enteredAmount by remember { mutableStateOf("") }
-    val quickAmounts  = listOf(50, 100, 200, 500, 1000, 2000, 5000, 10000)
-    val minDeposit    = 50
-    val maxDeposit    = 10000
+    val quickAmounts = listOf(50, 100, 200, 500, 1000, 2000, 5000, 10000)
+    val minDeposit = 1
+    val maxDeposit = 10000
 
     val context = LocalContext.current
-    val prefs   = context.getSharedPreferences("auth_prefs", android.content.Context.MODE_PRIVATE)
-    val token   = prefs.getString("auth_token", null)
+    val prefs = context.getSharedPreferences("auth_prefs", android.content.Context.MODE_PRIVATE)
+    val token = prefs.getString("auth_token", null)
+    val bearerToken = if (token?.startsWith("Bearer ") == true) token else "Bearer $token"
+
+    // ── ViewModel and state — at top level of composable ──
+    val viewModel: PaymentViewModel = viewModel()
+    val state = viewModel.state.collectAsState().value
 
     val isValid = (enteredAmount.toIntOrNull() ?: 0) in minDeposit..maxDeposit
+    val amountInt = enteredAmount.toIntOrNull() ?: 0
 
+    var navigated by remember { mutableStateOf(false) }
+
+    LaunchedEffect(state) {
+        if (state is PaymentViewModel.PaymentState.ReadyToPay && !navigated) {
+            navigated = true
+            navController.navigate(
+                "qr_display/${Uri.encode(state.result.bhimLink)}/${Uri.encode(state.result.checkLink)}/${state.result.orderId}/$amountInt"
+            )
+        }
+    }
     Column(
         modifier = Modifier
             .fillMaxSize()
             .background(
-                Color(0xFFC89738)
+                Color(0xFF40567E)
             )
     ) {
 
@@ -176,8 +195,8 @@ fun AddMoneyScreen(navController: NavController) {
             // ── NEXT Button → Navigate to QR Payment Screen ──
             Button(
                 onClick = {
-                    val amountInt = enteredAmount.toIntOrNull()
-                    if (amountInt == null) {
+                    val amt = enteredAmount.toIntOrNull()
+                    if (amt == null) {
                         Log.e(ADD_MONEY_TAG, "Invalid amount: '$enteredAmount'")
                         return@Button
                     }
@@ -185,26 +204,32 @@ fun AddMoneyScreen(navController: NavController) {
                         Log.e(ADD_MONEY_TAG, "Token is null — user not logged in")
                         return@Button
                     }
-                    Log.d(ADD_MONEY_TAG, "Navigating to QR screen → amount=$amountInt")
-                    navController.navigate("qr_payment/$amountInt")
+                    Log.d(ADD_MONEY_TAG, "Creating payment → amount=$amt")
+                    viewModel.createPayment(token = bearerToken, amount = amt)
                 },
-                enabled  = isValid,
+                enabled = isValid && state !is PaymentViewModel.PaymentState.Loading,
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(52.dp),
-                shape  = RoundedCornerShape(10.dp),
+                shape = RoundedCornerShape(10.dp),
                 colors = ButtonDefaults.buttonColors(
-                    containerColor         = Color(0xFF002800),
+                    containerColor = Color(0xFF002800),
                     disabledContainerColor = Color(0xFF555555)
                 )
             ) {
                 Text(
                     "NEXT",
-                    fontSize      = 16.sp,
-                    fontWeight    = FontWeight.Bold,
-                    color         = Color.White,
+                    fontSize = 16.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = Color.White,
                     letterSpacing = 2.sp
                 )
+            }
+// In AddMoneyScreen — add to DisposableEffect
+            DisposableEffect(Unit) {
+                onDispose {
+                    viewModel.resetState()
+                }
             }
 
             // ── Validation message ────────────────────────

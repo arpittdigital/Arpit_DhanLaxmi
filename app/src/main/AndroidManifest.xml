@@ -23,7 +23,7 @@
             android:name=".MainActivity"
             android:exported="true"
             android:launchMode="singleTop"
-            android:label="Seth G Matka"
+            android:label="BABAJI MATKA"
             android:theme="@style/Theme.DhanLaxmi"
             tools:ignore="MissingClass">
             <intent-filter>

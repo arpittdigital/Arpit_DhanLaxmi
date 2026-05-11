@@ -50,7 +50,7 @@ fun ResultScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .statusBarsPadding()
-                .background(Color(0xFFFFE500))
+                .background(Color(0xFF1A2A45))
         ) {
             // ── Top Bar ───────────────────────────────────────────────────────────
             TopAppBar(
@@ -108,7 +108,7 @@ fun ResultScreen(
                                 Box(
                                     modifier = Modifier
                                         .fillMaxWidth()
-                                        .background(Color(0xFFEEEEEE))
+                                        .background(Color(0xFFB9AAAA))
                                         .padding(horizontal = 16.dp, vertical = 8.dp)
                                 ) {
                                     Row(verticalAlignment = Alignment.CenterVertically) {
@@ -159,7 +159,7 @@ fun ResultRow(game: GameResult) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .background(if (isHighlighted) Color(0xFF1A1A1A) else Color(0xFFFFD600))
+            .background(if (isHighlighted) Color(0xFF1A1A1A) else Color(0xFFE8B4B8))
             .padding(horizontal = 14.dp, vertical = 12.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {

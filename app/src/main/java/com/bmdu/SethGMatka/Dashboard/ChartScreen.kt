@@ -127,10 +127,10 @@ fun ChartScreen(
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color(0xFFC89738))
+            .background(Color(0xFF1A2A45))
     ) {
 
-        // ── Top Bar ──────────────────────────────────────
+        // ── Top Bar ─────────────────────────────────────
         Row(
             modifier = Modifier
                 .fillMaxWidth()

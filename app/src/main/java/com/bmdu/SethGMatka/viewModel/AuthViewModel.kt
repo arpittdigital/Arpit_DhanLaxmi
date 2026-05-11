@@ -181,7 +181,7 @@ class AuthViewModel(application: Application) : AndroidViewModel(application) {
                     SendOtpRequest(phone = formatMobile(mobile))
                 )
                 if (response.isSuccessful && response.body()?.success == true) {
-                    _authState.value = com.bmdu.SethGMatka.viewModel.AuthViewModel.AuthState.Success(
+                    _authState.value = AuthState.OtpSent(
                         response.body()?.message ?: "OTP sent successfully"
                     )
                 } else {

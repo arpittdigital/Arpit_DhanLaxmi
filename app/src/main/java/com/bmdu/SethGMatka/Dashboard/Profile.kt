@@ -64,7 +64,7 @@ fun ProfileScreen(navController: NavController,profileViewModel : ProfileViewMod
         modifier = Modifier
             .fillMaxSize()
             .background(
-                Color(0xFFFFE500)
+                Color(0xFF1A2A45)
             )
     ) {
 
